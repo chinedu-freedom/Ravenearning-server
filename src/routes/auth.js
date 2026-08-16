@@ -15,7 +15,7 @@ router.post('/register', async (req, res) => {
 
   const phoneNum = phone || req.body.phone_number;
   if (!phoneNum && !email) {
-    return res.status(400).json({ error: 'Mobile phone number is required' });
+    return res.status(400).json({ error: 'Phone number is required' });
   }
 
   const rawDigits = phoneNum ? phoneNum.replace(/[^0-9]/g, '') : '';
@@ -46,7 +46,7 @@ router.post('/register', async (req, res) => {
     });
 
     if (existingUser) {
-      return res.status(400).json({ error: 'This mobile phone number is already registered' });
+      return res.status(400).json({ error: 'This phone number is already registered' });
     }
 
     if (!country_id) {
