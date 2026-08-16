@@ -73,12 +73,11 @@ router.get('/me', authenticate, async (req, res) => {
       where: { referred_by: req.user.id }
     });
 
-    // Fetch latest bank details from activity_logs
-    const latestBankLog = await prisma.activity_logs.findFirst({
-      where: { user_id: req.user.id, action: 'bank_details_updated' },
-      orderBy: { created_at: 'desc' }
-    });
-    const bankDetails = latestBankLog?.details ? (typeof latestBankLog.details === 'string' ? JSON.parse(latestBankLog.details) : latestBankLog.details) : null;
+    const bankDetails = user.bank_account_number ? {
+      account_name: user.bank_account_name,
+      bank_name: user.bank_name,
+      account_number: user.bank_account_number
+    } : null;
 
     res.json({
       success: true,
@@ -91,8 +90,8 @@ router.get('/me', authenticate, async (req, res) => {
         balance: user.balance,
         withdrawable_balance: user.withdrawable_balance,
         gift_balance: user.gift_balance,
-        country: user.country,
-        language: user.language,
+        country: { country_name: 'South Africa', currency_symbol: 'R', currency_code: 'ZAR' },
+        language: { language_name: 'English', language_code: 'en' },
         referral_code: user.referral_code,
         has_withdrawal_pin: !!user.withdrawal_pin,
         bank_details: bankDetails,
@@ -121,10 +120,13 @@ router.post('/bank-details', authenticate, async (req, res) => {
       return res.status(400).json({ success: false, message: 'All bank details are required' });
     }
 
-    await logActivity(userId, 'bank_details_updated', req, {
-      account_name,
-      bank_name,
-      account_number
+    await prisma.users.update({
+      where: { id: userId },
+      data: {
+        bank_account_name: account_name,
+        bank_name,
+        bank_account_number: account_number
+      }
     });
 
     res.json({
@@ -278,28 +280,7 @@ router.get('/transactions', authenticate, async (req, res) => {
 
 // Update user language
 router.put('/me/language', authenticate, async (req, res) => {
-  try {
-    const { language_code } = req.body;
-
-    // Find the language by code
-    const language = await prisma.languages.findUnique({
-      where: { language_code }
-    });
-
-    if (!language) {
-      return res.status(404).json({ success: false, error: 'Language not found' });
-    }
-
-    // Update user
-    await prisma.users.update({
-      where: { id: req.user.id },
-      data: { language_id: language.id }
-    });
-
-    res.json({ success: true, message: 'Language updated' });
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to update language' });
-  }
+  res.json({ success: true, message: 'Language updated' });
 });
 
 // Get user's daily checkin status

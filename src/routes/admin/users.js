@@ -11,10 +11,7 @@ const prisma = new PrismaClient();
 router.get('/', async (req, res) => {
   try {
     const users = await prisma.users.findMany({
-      orderBy: { created_at: 'desc' },
-      include: {
-        country: true
-      }
+      orderBy: { created_at: 'desc' }
     });
     res.json({ success: true, data: users });
   } catch (error) {
@@ -29,7 +26,6 @@ router.get('/:id', async (req, res) => {
     const user = await prisma.users.findUnique({
       where: { id: req.params.id },
       include: {
-        country: true,
         transactions: { orderBy: { created_at: 'desc' }, take: 10 },
         investments: true
       }

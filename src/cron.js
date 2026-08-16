@@ -182,47 +182,12 @@ export const runInvestmentCron = async () => {
   }
 };
 
-export const runExchangeRateCron = async () => {
-  try {
-    const autoUpdateCountries = await prisma.countries.findMany({
-      where: { auto_update: true }
-    });
-
-    if (autoUpdateCountries.length === 0) return;
-
-    const res = await fetch("https://open.er-api.com/v6/latest/USD");
-    const data = await res.json();
-
-    if (data && data.rates) {
-      for (const country of autoUpdateCountries) {
-        const trimmedCode = country.currency_code.trim().toUpperCase();
-        const liveRate = data.rates[trimmedCode];
-        if (liveRate) {
-          await prisma.countries.update({
-            where: { id: country.id },
-            data: { 
-              exchange_rate: liveRate,
-              currency_code: trimmedCode // Standardize the code in the database as well
-            }
-          });
-        }
-      }
-    }
-  } catch (err) {
-    console.error("Exchange Rate Cron Error:", err);
-  }
-};
-
 // Start the cron to run periodically
 export const initCron = () => {
-  console.log('Automated Investment Profit & Exchange Rate Crons Initialized...');
+  console.log('Automated Investment Profit Cron Initialized...');
   // Run immediately on start
   runInvestmentCron();
-  runExchangeRateCron();
   
   // Then run every 5 minutes to check for due payouts
   setInterval(runInvestmentCron, 5 * 60 * 1000);
-  
-  // Run exchange rate update every 15 minutes
-  setInterval(runExchangeRateCron, 15 * 60 * 1000);
 };

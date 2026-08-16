@@ -49,41 +49,6 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'This phone number is already registered' });
     }
 
-    let targetCountryId = country_id;
-    if (!targetCountryId) {
-      let defaultCountry = await prisma.countries.findFirst();
-      if (!defaultCountry) {
-        defaultCountry = await prisma.countries.create({
-          data: {
-            country_code: 'ZA',
-            country_name: 'South Africa',
-            currency_symbol: 'R',
-            currency_code: 'ZAR',
-            exchange_rate: 1.0,
-            status: true
-          }
-        });
-      }
-      targetCountryId = defaultCountry.id;
-    }
-
-    let targetLanguageId = language_id;
-    if (!targetLanguageId) {
-      let defaultLanguage = await prisma.languages.findFirst();
-      if (!defaultLanguage) {
-        defaultLanguage = await prisma.languages.create({
-          data: {
-            language_code: 'en',
-            language_name: 'English',
-            native_name: 'English',
-            is_default: true,
-            status: true
-          }
-        });
-      }
-      targetLanguageId = defaultLanguage.id;
-    }
-
     const password_hash = await bcrypt.hash(password, 10);
     
     // Generate unique referral code (RAND + random digits)
@@ -104,28 +69,7 @@ router.post('/register', async (req, res) => {
       }
     }
 
-    let settings = await prisma.settings.findFirst();
-    if (!settings) {
-      settings = await prisma.settings.create({
-        data: {
-          site_name: 'Ravenearning',
-          site_title: 'Ravenearning Investment Platform',
-          currency_name: 'ZAR',
-          currency_symbol: 'R',
-          timezone: 'Africa/Johannesburg',
-          registration_bonus: 0,
-          welcome_bonus_destination: 'withdrawable_balance',
-          daily_withdrawal_limit: 100000,
-          min_withdrawal: 100,
-          max_withdrawal: 50000,
-          min_deposit: 100,
-          max_deposit: 500000,
-          withdrawal_charge: 2,
-          deposit_charge: 0,
-          deposit_bonus: 0
-        }
-      });
-    }
+    const settings = await prisma.settings.findFirst();
     const regBonus = settings ? Number(settings.registration_bonus || 0) : 0;
 
     const clientIp = (req.headers['x-forwarded-for'] 
@@ -138,8 +82,6 @@ router.post('/register', async (req, res) => {
         password_hash,
         full_name,
         username,
-        country_id: targetCountryId,
-        language_id: targetLanguageId,
         referral_code,
         referred_by: referred_by_id,
         last_login: new Date(),
@@ -164,8 +106,6 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    await logActivity(user.id, 'user registered', req);
-
     const token = jwt.sign({ id: user.id, email: user.email, role: 'user' }, JWT_SECRET, { expiresIn: '24h' });
 
     res.status(201).json({
@@ -188,27 +128,12 @@ router.post('/register', async (req, res) => {
 
 // Get Countries
 router.get('/countries', async (req, res) => {
-  try {
-    const countries = await prisma.countries.findMany({
-      orderBy: { country_name: 'asc' },
-    });
-    res.json({ success: true, data: countries });
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to fetch countries' });
-  }
+  res.json({ success: true, data: [{ id: 'za', country_code: 'ZA', country_name: 'South Africa', currency_symbol: 'R', currency_code: 'ZAR' }] });
 });
 
 // Get Languages
 router.get('/languages', async (req, res) => {
-  try {
-    const languages = await prisma.languages.findMany({
-      where: { status: true },
-      orderBy: { sort_order: 'asc' },
-    });
-    res.json({ success: true, data: languages });
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to fetch languages' });
-  }
+  res.json({ success: true, data: [{ id: 'en', language_code: 'en', language_name: 'English', is_default: true }] });
 });
 
 // User Login

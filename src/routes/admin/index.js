@@ -6,16 +6,7 @@ import usersRoutes from './users.js';
 import plansRoutes from './plans.js';
 import transactionsRoutes from './transactions.js';
 import rewardsRoutes from './rewards.js';
-import contentRoutes from './content.js';
 import settingsRoutes from './settings.js';
-import newsRoutes from './news.js';
-import partnersRoutes from './partners.js';
-import activitiesRoutes from './activities.js';
-import slidersRoutes from './sliders.js';
-import liveMarketRoutes from './live-market.js';
-import countriesRoutes from './countries.js';
-import languagesRoutes from './languages.js';
-import aboutRoutes from './about.js';
 import profileRoutes from './profile.js';
 
 const router = Router();
@@ -28,16 +19,16 @@ router.use('/users', usersRoutes);
 router.use('/plans', plansRoutes);
 router.use('/transactions', transactionsRoutes);
 router.use('/rewards', rewardsRoutes);
-router.use('/content', contentRoutes);
 router.use('/settings', settingsRoutes);
-router.use('/news', newsRoutes);
-router.use('/partners', partnersRoutes);
-router.use('/activities', activitiesRoutes);
-router.use('/sliders', slidersRoutes);
-router.use('/live-market', liveMarketRoutes);
-router.use('/countries', countriesRoutes);
-router.use('/languages', languagesRoutes);
-router.use('/about', aboutRoutes);
 router.use('/profile', profileRoutes);
+
+// Safe empty fallbacks for deleted sections
+router.get('/news', (req, res) => res.json({ success: true, data: [] }));
+router.get('/partners', (req, res) => res.json({ success: true, data: [] }));
+router.get('/sliders', (req, res) => res.json({ success: true, data: [] }));
+router.get('/live-market', (req, res) => res.json({ success: true, data: [] }));
+router.get('/activities', (req, res) => res.json({ success: true, data: [] }));
+router.get('/countries', (req, res) => res.json({ success: true, data: [] }));
+router.get('/languages', (req, res) => res.json({ success: true, data: [] }));
 
 export default router;

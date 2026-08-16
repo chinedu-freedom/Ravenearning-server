@@ -2,12 +2,7 @@ import { Router } from 'express';
 import authRoutes from './auth.js';
 import userRoutes from './user.js';
 import adminRoutes from './admin/index.js';
-import newsRoutes from './news.js';
-import partnersRoutes from './partners.js';
-import slidersRoutes from './sliders.js';
-import liveMarketRoutes from './live-market.js';
 import plansRoutes from './plans.js';
-import teamRoutes from './team.js';
 import settingsRoutes from './settings.js';
 
 const router = Router();
@@ -15,12 +10,14 @@ const router = Router();
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/admin', adminRoutes);
-router.use('/news', newsRoutes);
-router.use('/partners', partnersRoutes);
-router.use('/sliders', slidersRoutes);
-router.use('/live-market', liveMarketRoutes);
 router.use('/plans', plansRoutes);
-router.use('/team-members', teamRoutes);
 router.use('/settings', settingsRoutes);
+
+// Safe empty fallbacks for legacy content endpoints
+router.get('/sliders', (req, res) => res.json({ success: true, data: [] }));
+router.get('/partners', (req, res) => res.json({ success: true, data: [] }));
+router.get('/news', (req, res) => res.json({ success: true, data: [] }));
+router.get('/live-market', (req, res) => res.json({ success: true, data: [] }));
+router.get('/team-members', (req, res) => res.json({ success: true, data: [] }));
 
 export default router;

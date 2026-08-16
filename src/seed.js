@@ -6,39 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding defaults...');
 
-  // 1. Create a Default Country (South Africa)
-  const defaultCountry = await prisma.countries.upsert({
-    where: { country_code: 'ZA' },
-    update: {},
-    create: {
-      country_code: 'ZA',
-      country_name: 'South Africa',
-      currency_symbol: 'R',
-      currency_code: 'ZAR',
-      exchange_rate: 1.0,
-      auto_update: false,
-      status: true,
-    },
-  });
-  console.log(`Default Country: ${defaultCountry.country_name} (${defaultCountry.id})`);
-
-  // 2. Create a Default Language
-  const defaultLanguage = await prisma.languages.upsert({
-    where: { language_code: 'en' },
-    update: {},
-    create: {
-      language_code: 'en',
-      language_name: 'English',
-      native_name: 'English',
-      flag_emoji: '🇿🇦',
-      text_direction: 'ltr',
-      is_default: true,
-      status: true,
-    },
-  });
-  console.log(`Default Language: ${defaultLanguage.language_name} (${defaultLanguage.id})`);
-
-  // 3. Create Default Settings
+  // 1. Create Default Settings
   const existingSettings = await prisma.settings.findFirst();
   if (!existingSettings) {
     const settings = await prisma.settings.create({

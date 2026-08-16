@@ -20,7 +20,6 @@ model admins {
   created_at    DateTime     @default(now())
   updated_at    DateTime     @updatedAt
 
-  admin_logs    admin_logs[]
   gift_codes    gift_codes[]
   deposits_approved deposits[] @relation("ApprovedDeposits")
   withdrawals_processed withdrawals[] @relation("ProcessedWithdrawals")
@@ -36,14 +35,15 @@ model users {
   full_name        String
   username         String?   @unique
   profile_image    String?
-  country_id       String    @db.Uuid
-  language_id      String    @db.Uuid
+  bank_account_name String?
+  bank_name        String?
+  bank_account_number String?
   balance          Decimal   @default(0) @db.Decimal(18, 8)
   withdrawable_balance Decimal @default(0) @db.Decimal(18, 8)
   gift_balance     Decimal   @default(0) @db.Decimal(18, 8)
   referral_code    String    @unique
   referred_by      String?   @db.Uuid
-  email_verified   Boolean   @default(false)
+  email_verified   Boolean   @default(true)
   verification_code String?
   verification_expires DateTime?
   is_active        Boolean   @default(true)
@@ -60,8 +60,6 @@ model users {
   can_access_spin  Boolean   @default(true)
   can_access_checkin Boolean  @default(true)
 
-  country   countries        @relation(fields: [country_id], references: [id])
-  language  languages        @relation(fields: [language_id], references: [id])
   referrer  users?           @relation("UserReferral", fields: [referred_by], references: [id])
   referrals users[]          @relation("UserReferral")
 
@@ -75,8 +73,6 @@ model users {
   gift_code_claims    gift_code_claims[]
   referral_commissions_earned referral_commissions[] @relation("EarnedBy")
   referral_commissions_given  referral_commissions[] @relation("GivenBy")
-  activity_logs       activity_logs[]
-  email_logs          email_logs[]
   user_spins          user_spins[]
   password_resets     password_resets[]
   investment_profits  investment_profits[]
@@ -306,53 +302,11 @@ model spin_logs {
   @@map("spin_logs")
 }
 
-model news {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  image        String?
-  title        String
-  category     String?
-  is_featured  Boolean  @default(false)
-  description  String?
-  content      String   @db.Text
-  views        Int      @default(0)
-  status       Boolean  @default(true)
-  published_at DateTime @default(now())
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
-
-  @@map("news")
-}
-
-model partners {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  logo          String
-  partner_name  String
-  status        Boolean  @default(true)
-  display_order Int      @default(0)
-  created_at    DateTime @default(now())
-
-  @@map("partners")
-}
-
-model market_assets {
-  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  symbol          String   @unique
-  name            String
-  trading_pair    String
-  logo_url        String?
-  status          Boolean  @default(true)
-  current_price   Decimal? @db.Decimal(18, 8)
-  price_change_24h Decimal? @db.Decimal(10, 6)
-  updated_at      DateTime @updatedAt
-
-  @@map("market_assets")
-}
-
 model deposits {
   id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id          String         @db.Uuid
   amount           Decimal        @db.Decimal(18, 8)
-  cryptocurrency   String?        // e.g., BTC, USDT
+  cryptocurrency   String?
   proof_image_url  String?
   status           String
   approved_by      String?        @db.Uuid
@@ -403,117 +357,6 @@ model transactions {
   @@index([created_at])
   @@index([type])
   @@map("transactions")
-}
-
-model sliders {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  image          String
-  title          String?
-  display_location String
-  status         Boolean  @default(true)
-  display_order  Int      @default(0)
-  created_at     DateTime @default(now())
-
-  @@map("sliders")
-}
-
-model countries {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  country_code  String   @unique
-  country_name  String
-  currency_symbol String
-  currency_code String
-  exchange_rate Decimal  @db.Decimal(18, 8)
-  auto_update   Boolean  @default(false)
-  status        Boolean  @default(true)
-
-  users users[]
-
-  @@map("countries")
-}
-
-model languages {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  language_code String   @unique
-  language_name String
-  native_name   String
-  flag_emoji    String?
-  text_direction String  @default("ltr")
-  sort_order    Int      @default(0)
-  is_default    Boolean  @default(false)
-  status        Boolean  @default(true)
-
-  users users[]
-
-  @@map("languages")
-}
-
-model team_members {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  image         String?
-  name          String
-  position      String
-  status        Boolean  @default(true)
-  display_order Int      @default(0)
-  created_at    DateTime @default(now())
-
-  @@map("team_members")
-}
-
-
-
-model payout_cryptocurrencies {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  icon           String?
-  name           String
-  symbol         String
-  network        String
-  network_name   String?
-  sort_order     Int      @default(0)
-  status         Boolean  @default(true)
-
-  @@unique([symbol, network])
-  @@map("payout_cryptocurrencies")
-}
-
-model email_logs {
-  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id    String        @db.Uuid
-  recipient  String
-  subject    String
-  email_type String
-  status     String
-  sent_at    DateTime      @default(now())
-  error_msg  String?
-
-  user users @relation(fields: [user_id], references: [id])
-
-  @@map("email_logs")
-}
-
-model email_settings {
-  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  smtp_host        String
-  smtp_port        Int
-  smtp_user        String
-  smtp_pass_encrypted String
-  from_email       String
-  from_name        String
-  
-  // Notification Preferences
-  notify_deposit_processing     Boolean @default(true)
-  notify_deposit_approved       Boolean @default(true)
-  notify_deposit_rejected       Boolean @default(true)
-  notify_withdrawal_processing  Boolean @default(true)
-  notify_withdrawal_approved    Boolean @default(true)
-  notify_withdrawal_rejected    Boolean @default(true)
-  notify_news_update            Boolean @default(true)
-  notify_profit_return          Boolean @default(true)
-  notify_capital_return         Boolean @default(true)
-
-  updated_at       DateTime @updatedAt
-
-  @@map("email_settings")
 }
 
 model settings {
@@ -571,47 +414,4 @@ model settings {
   updated_at               DateTime @updatedAt
 
   @@map("settings")
-}
-
-model about_us {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  images     String[] // array of image URLs
-  content    String   @db.Text
-  updated_at DateTime @updatedAt
-
-  @@map("about_us")
-}
-
-model activity_logs {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id    String   @db.Uuid
-  action     String
-  ip_address String
-  user_agent String
-  details    Json?
-  created_at DateTime @default(now())
-
-  user users @relation(fields: [user_id], references: [id])
-
-  @@index([user_id])
-  @@index([created_at])
-  @@index([action])
-  @@map("activity_logs")
-}
-
-model admin_logs {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  admin_id   String   @db.Uuid
-  action     String
-  target_id  String?  @db.Uuid
-  target_type String?
-  details    Json?
-  ip_address String?
-  created_at DateTime @default(now())
-
-  admin admins @relation(fields: [admin_id], references: [id])
-
-  @@index([admin_id])
-  @@index([created_at])
-  @@map("admin_logs")
 }

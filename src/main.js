@@ -11,35 +11,6 @@ const prisma = new PrismaClient();
 
 async function initDefaults() {
   try {
-    const countryCount = await prisma.countries.count();
-    if (countryCount === 0) {
-      await prisma.countries.create({
-        data: {
-          country_code: 'ZA',
-          country_name: 'South Africa',
-          currency_symbol: 'R',
-          currency_code: 'ZAR',
-          exchange_rate: 1.0,
-          status: true
-        }
-      });
-      console.log('Default South Africa country initialized');
-    }
-
-    const languageCount = await prisma.languages.count();
-    if (languageCount === 0) {
-      await prisma.languages.create({
-        data: {
-          language_code: 'en',
-          language_name: 'English',
-          native_name: 'English',
-          is_default: true,
-          status: true
-        }
-      });
-      console.log('Default English language initialized');
-    }
-
     const settingsCount = await prisma.settings.count();
     if (settingsCount === 0) {
       await prisma.settings.create({
