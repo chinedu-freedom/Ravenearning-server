@@ -49,13 +49,39 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'This phone number is already registered' });
     }
 
-    if (!country_id) {
-      const defaultCountry = await prisma.countries.findFirst();
-      if (defaultCountry) country_id = defaultCountry.id;
+    let targetCountryId = country_id;
+    if (!targetCountryId) {
+      let defaultCountry = await prisma.countries.findFirst();
+      if (!defaultCountry) {
+        defaultCountry = await prisma.countries.create({
+          data: {
+            country_code: 'ZA',
+            country_name: 'South Africa',
+            currency_symbol: 'R',
+            currency_code: 'ZAR',
+            exchange_rate: 1.0,
+            status: true
+          }
+        });
+      }
+      targetCountryId = defaultCountry.id;
     }
-    if (!language_id) {
-      const defaultLanguage = await prisma.languages.findFirst();
-      if (defaultLanguage) language_id = defaultLanguage.id;
+
+    let targetLanguageId = language_id;
+    if (!targetLanguageId) {
+      let defaultLanguage = await prisma.languages.findFirst();
+      if (!defaultLanguage) {
+        defaultLanguage = await prisma.languages.create({
+          data: {
+            language_code: 'en',
+            language_name: 'English',
+            native_name: 'English',
+            is_default: true,
+            status: true
+          }
+        });
+      }
+      targetLanguageId = defaultLanguage.id;
     }
 
     const password_hash = await bcrypt.hash(password, 10);
@@ -78,7 +104,28 @@ router.post('/register', async (req, res) => {
       }
     }
 
-    const settings = await prisma.settings.findFirst();
+    let settings = await prisma.settings.findFirst();
+    if (!settings) {
+      settings = await prisma.settings.create({
+        data: {
+          site_name: 'Ravenearning',
+          site_title: 'Ravenearning Investment Platform',
+          currency_name: 'ZAR',
+          currency_symbol: 'R',
+          timezone: 'Africa/Johannesburg',
+          registration_bonus: 0,
+          welcome_bonus_destination: 'withdrawable_balance',
+          daily_withdrawal_limit: 100000,
+          min_withdrawal: 100,
+          max_withdrawal: 50000,
+          min_deposit: 100,
+          max_deposit: 500000,
+          withdrawal_charge: 2,
+          deposit_charge: 0,
+          deposit_bonus: 0
+        }
+      });
+    }
     const regBonus = settings ? Number(settings.registration_bonus || 0) : 0;
 
     const clientIp = (req.headers['x-forwarded-for'] 
@@ -91,8 +138,8 @@ router.post('/register', async (req, res) => {
         password_hash,
         full_name,
         username,
-        country_id,
-        language_id,
+        country_id: targetCountryId,
+        language_id: targetLanguageId,
         referral_code,
         referred_by: referred_by_id,
         last_login: new Date(),
