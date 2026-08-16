@@ -11,31 +11,42 @@ const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 
 // User Registration
 router.post('/register', async (req, res) => {
-  let { email, phone, password, full_name, username, country_id, language_id, referred_by_code } = req.body;
+  let { email, phone, password, full_name, country_id, language_id, referred_by_code } = req.body;
 
   const phoneNum = phone || req.body.phone_number;
-  if (!email && phoneNum) {
-    email = `${phoneNum.replace(/[^0-9]/g, '')}@omni.com`;
-  }
-  if (!full_name) {
-    full_name = phoneNum ? `Member ${phoneNum.slice(-4)}` : 'Omni Member';
+  if (!phoneNum && !email) {
+    return res.status(400).json({ error: 'Mobile phone number is required' });
   }
 
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Missing required fields (phone and password)' });
+  const rawDigits = phoneNum ? phoneNum.replace(/[^0-9]/g, '') : '';
+  const noZero = rawDigits.startsWith('0') ? rawDigits.substring(1) : rawDigits;
+  const normalizedDigits = noZero.startsWith('27') ? noZero : `27${noZero}`;
+  
+  if (!email) {
+    email = `${normalizedDigits}@omni.com`;
+  }
+  if (!full_name) {
+    full_name = `Member ${normalizedDigits.slice(-4)}`;
+  }
+  const username = normalizedDigits;
+
+  if (!password) {
+    return res.status(400).json({ error: 'Password is required' });
   }
 
   try {
-    const existingUser = await prisma.users.findUnique({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ error: 'This phone number is already registered' });
-    }
-
-    if (username) {
-      const existingUsername = await prisma.users.findFirst({ where: { username } });
-      if (existingUsername) {
-        return res.status(400).json({ error: 'Username is already taken' });
+    const existingUser = await prisma.users.findFirst({
+      where: {
+        OR: [
+          { email },
+          { email: `${rawDigits}@omni.com` },
+          { email: `${normalizedDigits}@omni.com` }
+        ]
       }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'This mobile phone number is already registered' });
     }
 
     if (!country_id) {
@@ -49,13 +60,19 @@ router.post('/register', async (req, res) => {
 
     const password_hash = await bcrypt.hash(password, 10);
     
-    // Generate unique referral code (first 4 letters of name + random numbers)
-    const prefix = full_name.substring(0, 4).toUpperCase().replace(/[^A-Z]/g, 'OMNI');
-    const referral_code = `${prefix}${Math.floor(1000 + Math.random() * 9000)}`;
+    // Generate unique referral code (RAND + random digits)
+    const referral_code = `SA${Math.floor(100000 + Math.random() * 900000)}`;
 
     let referred_by_id = null;
     if (referred_by_code) {
-      const referrer = await prisma.users.findUnique({ where: { referral_code: referred_by_code } });
+      const referrer = await prisma.users.findFirst({ 
+        where: { 
+          OR: [
+            { referral_code: referred_by_code },
+            { id: referred_by_code }
+          ]
+        } 
+      });
       if (referrer) {
         referred_by_id = referrer.id;
       }
@@ -110,7 +127,7 @@ router.post('/register', async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        phone: phoneNum,
+        phone: normalizedDigits,
         full_name: user.full_name,
         balance: user.balance,
         withdrawable_balance: user.withdrawable_balance
@@ -152,18 +169,24 @@ router.post('/login', async (req, res) => {
   let { email, phone, password } = req.body;
 
   const phoneNum = phone || req.body.phone_number;
-  let targetEmail = email;
-  if (!targetEmail && phoneNum) {
-    targetEmail = `${phoneNum.replace(/[^0-9]/g, '')}@omni.com`;
-  }
+  const digits = phoneNum ? phoneNum.replace(/[^0-9]/g, '') : '';
+  const noZero = digits.startsWith('0') ? digits.substring(1) : digits;
+  const with27 = noZero.startsWith('27') ? noZero : `27${noZero}`;
+  const without27 = with27.startsWith('27') ? with27.substring(2) : with27;
+
+  const possibleEmails = [
+    email,
+    phoneNum,
+    `${digits}@omni.com`,
+    `${with27}@omni.com`,
+    `${without27}@omni.com`,
+    `0${without27}@omni.com`
+  ].filter(Boolean);
 
   try {
     const user = await prisma.users.findFirst({
       where: {
-        OR: [
-          { email: targetEmail },
-          { email: phoneNum }
-        ]
+        OR: possibleEmails.map(e => ({ email: e }))
       }
     });
 

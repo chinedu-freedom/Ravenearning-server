@@ -32,7 +32,11 @@ router.get('/', async (req, res) => {
       }
     });
     
-    res.json({ success: true, settings: settings || {} });
+    if (settings && !settings.platform_logo) {
+      settings.platform_logo = "/logo.jpeg";
+    }
+    
+    res.json({ success: true, settings: settings || { site_name: 'Ravenearning', platform_logo: '/logo.jpeg', currency_symbol: 'R' } });
   } catch (error) {
     console.error('Settings fetch error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch settings' });
