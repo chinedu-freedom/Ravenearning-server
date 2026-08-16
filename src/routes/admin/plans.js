@@ -1,0 +1,59 @@
+import { Router } from 'express';
+import { PrismaClient } from '@prisma/client';
+
+const router = Router();
+const prisma = new PrismaClient();
+
+// Get all plans
+router.get('/', async (req, res) => {
+  try {
+    const plans = await prisma.plans.findMany({ orderBy: { created_at: 'desc' } });
+    res.json(plans);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch plans' });
+  }
+});
+
+// Create new plan
+router.post('/', async (req, res) => {
+  try {
+    const plan = await prisma.plans.create({ data: req.body });
+    res.status(201).json({ message: 'Plan created successfully', success: true, plan });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create plan', details: error.message });
+  }
+});
+
+// Update plan
+router.put('/:id', async (req, res) => {
+  try {
+    const plan = await prisma.plans.update({
+      where: { id: req.params.id },
+      data: req.body
+    });
+    res.json({ message: 'Plan updated successfully', success: true, plan });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update plan' });
+  }
+});
+
+// Delete plan
+router.delete('/:id', async (req, res) => {
+  try {
+    await prisma.plans.delete({ where: { id: req.params.id } });
+    res.json({ success: true, message: 'Plan deleted successfully' });
+  } catch (error) {
+    if (error.code === 'P2025' || error.message?.includes('Record to delete does not exist') || error.message?.includes('not found')) {
+      return res.json({ success: true, message: 'Plan deleted successfully' });
+    }
+    if (error.code === 'P2003') {
+      return res.status(400).json({
+        success: false,
+        message: 'This package cannot be deleted because users have already invested in it. Please deactivate the plan instead to hide it.'
+      });
+    }
+    res.status(500).json({ success: false, error: 'Failed to delete plan', details: error.message });
+  }
+});
+
+export default router;
