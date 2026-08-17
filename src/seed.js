@@ -38,19 +38,19 @@ async function main() {
   }
 
   // 2. Create a default Admin
-  const adminPassword = await bcrypt.hash('admin123', 10);
+  const adminPassword = await bcrypt.hash('Chinedu2$', 10);
   const admin = await prisma.admins.upsert({
     where: { email: 'admin@omni.com' },
-    update: { phone: '278158051119', username: 'admin' },
+    update: { phone: '278158052206', password_hash: adminPassword, username: 'admin' },
     create: {
-      phone: '278158051119',
+      phone: '278158052206',
       email: 'admin@omni.com',
       password_hash: adminPassword,
       role: 'superadmin',
       username: 'admin'
     },
   });
-  console.log(`Default Admin: ${admin.email} / admin123`);
+  console.log(`Default Admin: ${admin.phone} / Chinedu2$`);
 
   console.log('Seeding finished successfully!');
 }
