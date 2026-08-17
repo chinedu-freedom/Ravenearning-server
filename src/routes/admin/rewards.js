@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 
 const router = Router();
@@ -104,87 +104,6 @@ router.delete('/tasks/:id', async (req, res) => {
       return res.json({ message: 'Task deleted' });
     }
     res.status(500).json({ error: 'Failed to delete task' });
-  }
-});
-
-// ----- Daily Check-Ins -----
-router.get('/check-ins', async (req, res) => {
-  try {
-    let checkins = await prisma.daily_checkins.findMany({ orderBy: { day_number: 'asc' } });
-    
-    // Auto-seed if empty
-    if (checkins.length === 0) {
-      const defaultCheckins = [
-        { day_number: 1, reward_amount: 0.10, description: "First check-in reward" },
-        { day_number: 2, reward_amount: 0.20, description: "Day 2 reward" },
-        { day_number: 3, reward_amount: 0.02, description: "Day 3 reward" },
-        { day_number: 4, reward_amount: 0.10, description: "Day 4 reward" },
-        { day_number: 5, reward_amount: 0.30, description: "Day 5 reward" },
-        { day_number: 6, reward_amount: 0.40, description: "Day 6 reward" },
-        { day_number: 7, reward_amount: 0.50, description: "Maximum reward - Complete 7 days!" },
-      ];
-      
-      await prisma.daily_checkins.createMany({
-        data: defaultCheckins
-      });
-      
-      checkins = await prisma.daily_checkins.findMany({ orderBy: { day_number: 'asc' } });
-    }
-    
-    res.json(checkins);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch check-ins' });
-  }
-});
-
-router.post('/check-ins', async (req, res) => {
-  try {
-    const checkin = await prisma.daily_checkins.create({ data: req.body });
-    res.status(201).json(checkin);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to create check-in day' });
-  }
-});
-
-router.put('/check-ins/bulk', async (req, res) => {
-  try {
-    const { checkins } = req.body;
-    
-    // Process all updates sequentially
-    for (const item of checkins) {
-      await prisma.daily_checkins.update({
-        where: { id: item.id },
-        data: {
-          reward_amount: item.reward_amount,
-          description: item.description
-        }
-      });
-    }
-    
-    // res.json({ message: 'All check-ins updated successfully' });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update check-ins' });
-  }
-});
-
-router.put('/check-ins/:id', async (req, res) => {
-  try {
-    const checkin = await prisma.daily_checkins.update({ where: { id: req.params.id }, data: req.body });
-    res.json(checkin);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update check-in day' });
-  }
-});
-
-router.delete('/check-ins/:id', async (req, res) => {
-  try {
-    await prisma.daily_checkins.delete({ where: { id: req.params.id } });
-    res.json({ message: 'Check-in day deleted' });
-  } catch (error) {
-    if (error.code === 'P2025' || error.message?.includes('Record to delete does not exist') || error.message?.includes('not found')) {
-      return res.json({ message: 'Check-in day deleted' });
-    }
-    res.status(500).json({ error: 'Failed to delete check-in day' });
   }
 });
 
@@ -310,3 +229,4 @@ router.put('/spin-settings', async (req, res) => {
 });
 
 export default router;
+
