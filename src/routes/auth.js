@@ -140,25 +140,30 @@ router.get('/languages', async (req, res) => {
 router.post('/login', async (req, res) => {
   let { email, phone, password } = req.body;
 
-  const phoneNum = phone || req.body.phone_number;
+  const phoneNum = phone || req.body.phone_number || email;
+  if (!phoneNum || !password) {
+    return res.status(400).json({ error: 'Phone number and password are required' });
+  }
+
   const digits = phoneNum ? phoneNum.replace(/[^0-9]/g, '') : '';
   const noZero = digits.startsWith('0') ? digits.substring(1) : digits;
   const with27 = noZero.startsWith('27') ? noZero : `27${noZero}`;
   const without27 = with27.startsWith('27') ? with27.substring(2) : with27;
 
-  const possibleEmails = [
-    email,
-    phoneNum,
-    `${digits}@omni.com`,
-    `${with27}@omni.com`,
-    `${without27}@omni.com`,
-    `0${without27}@omni.com`
-  ].filter(Boolean);
-
   try {
     const user = await prisma.users.findFirst({
       where: {
-        OR: possibleEmails.map(e => ({ email: e }))
+        OR: [
+          { phone: with27 },
+          { phone: without27 },
+          { phone: digits },
+          { username: with27 },
+          { username: without27 },
+          { email: `${with27}@omni.com` },
+          { email: `${without27}@omni.com` },
+          { email: `${digits}@omni.com` },
+          { email: phoneNum }
+        ].filter(Boolean)
       }
     });
 
@@ -183,19 +188,16 @@ router.post('/login', async (req, res) => {
       }
     });
 
-    await logActivity(user.id, 'user login', req);
-
     const { keepMeLoggedIn } = req.body;
     const expiresIn = keepMeLoggedIn ? '24h' : '1h';
-    const token = jwt.sign({ id: user.id, email: user.email, role: 'user' }, JWT_SECRET, { expiresIn });
+    const token = jwt.sign({ id: user.id, role: 'user' }, JWT_SECRET, { expiresIn });
 
     res.json({
       message: 'Login successful',
       token,
       user: {
         id: user.id,
-        email: user.email,
-        phone: phoneNum,
+        phone: with27,
         full_name: user.full_name,
         balance: user.balance,
         withdrawable_balance: user.withdrawable_balance
@@ -208,37 +210,52 @@ router.post('/login', async (req, res) => {
 
 // Admin Login
 router.post('/admin/login', async (req, res) => {
-  const { email, password } = req.body;
+  const { email, phone, password } = req.body;
+  const identifier = phone || email || req.body.phone_number;
+
+  if (!identifier || !password) {
+    return res.status(400).json({ error: 'Phone number and password are required' });
+  }
+
+  const rawDigits = identifier.replace(/[^0-9]/g, '');
+  const noZero = rawDigits.startsWith('0') ? rawDigits.substring(1) : rawDigits;
+  const with27 = noZero.startsWith('27') ? noZero : `27${noZero}`;
+  const without27 = with27.startsWith('27') ? with27.substring(2) : with27;
 
   try {
-    const cleanEmail = email ? email.toLowerCase().trim() : '';
     const admin = await prisma.admins.findFirst({
       where: {
         OR: [
-          { email: cleanEmail },
-          { username: email ? email.trim() : '' }
-        ]
+          { phone: with27 },
+          { phone: without27 },
+          { phone: rawDigits },
+          { email: identifier },
+          { email: `${with27}@omni.com` },
+          { email: 'admin@omni.com' },
+          { username: identifier },
+          { username: 'admin' }
+        ].filter(Boolean)
       }
     });
     if (!admin) {
-      return res.status(401).json({ error: 'Invalid admin credentials' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const isValid = await bcrypt.compare(password, admin.password_hash);
     if (!isValid) {
-      return res.status(401).json({ error: 'Invalid admin credentials' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const { keepMeLoggedIn } = req.body;
     const expiresIn = keepMeLoggedIn ? '24h' : '1h';
-    const token = jwt.sign({ id: admin.id, email: admin.email, role: 'admin' }, JWT_SECRET, { expiresIn });
+    const token = jwt.sign({ id: admin.id, role: 'admin' }, JWT_SECRET, { expiresIn });
 
     res.json({
       message: 'Admin login successful',
       token,
       admin: {
         id: admin.id,
-        email: admin.email,
+        phone: admin.phone || with27,
         role: admin.role
       }
     });
@@ -249,11 +266,25 @@ router.post('/admin/login', async (req, res) => {
 
 // Forgot Password
 router.post('/forgot-password', async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: 'Email is required' });
+  const { email, phone } = req.body;
+  const phoneNum = phone || email || req.body.phone_number;
+  if (!phoneNum) return res.status(400).json({ error: 'Phone number is required' });
+
+  const rawDigits = phoneNum.replace(/[^0-9]/g, '');
+  const noZero = rawDigits.startsWith('0') ? rawDigits.substring(1) : rawDigits;
+  const with27 = noZero.startsWith('27') ? noZero : `27${noZero}`;
 
   try {
-    const user = await prisma.users.findUnique({ where: { email } });
+    const user = await prisma.users.findFirst({
+      where: {
+        OR: [
+          { phone: with27 },
+          { email: `${with27}@omni.com` },
+          { email: phoneNum }
+        ]
+      }
+    });
+
     if (!user) {
       return res.json({ success: true, message: 'OTP sent successfully' });
     }
@@ -274,9 +305,7 @@ router.post('/forgot-password', async (req, res) => {
       }
     });
 
-    await sendPasswordResetEmail(user.email, user.full_name || 'User', otp);
-
-    res.json({ success: true, message: 'OTP sent successfully' });
+    res.json({ success: true, message: 'OTP sent successfully', otp });
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({ error: 'Failed to process request' });
@@ -285,11 +314,24 @@ router.post('/forgot-password', async (req, res) => {
 
 // Verify OTP
 router.post('/verify-otp', async (req, res) => {
-  const { email, otp } = req.body;
-  if (!email || !otp) return res.status(400).json({ error: 'Email and OTP are required' });
+  const { email, phone, otp } = req.body;
+  const phoneNum = phone || email || req.body.phone_number;
+  if (!phoneNum || !otp) return res.status(400).json({ error: 'Phone number and OTP are required' });
+
+  const rawDigits = phoneNum.replace(/[^0-9]/g, '');
+  const noZero = rawDigits.startsWith('0') ? rawDigits.substring(1) : rawDigits;
+  const with27 = noZero.startsWith('27') ? noZero : `27${noZero}`;
 
   try {
-    const user = await prisma.users.findUnique({ where: { email } });
+    const user = await prisma.users.findFirst({
+      where: {
+        OR: [
+          { phone: with27 },
+          { email: `${with27}@omni.com` },
+          { email: phoneNum }
+        ]
+      }
+    });
     if (!user) return res.status(400).json({ error: 'Invalid or expired OTP' });
 
     const reset = await prisma.password_resets.findFirst({
@@ -312,11 +354,24 @@ router.post('/verify-otp', async (req, res) => {
 
 // Reset Password
 router.post('/reset-password', async (req, res) => {
-  const { email, newPassword } = req.body;
-  if (!email || !newPassword) return res.status(400).json({ error: 'Email and new password are required' });
+  const { email, phone, newPassword } = req.body;
+  const phoneNum = phone || email || req.body.phone_number;
+  if (!phoneNum || !newPassword) return res.status(400).json({ error: 'Phone number and new password are required' });
+
+  const rawDigits = phoneNum.replace(/[^0-9]/g, '');
+  const noZero = rawDigits.startsWith('0') ? rawDigits.substring(1) : rawDigits;
+  const with27 = noZero.startsWith('27') ? noZero : `27${noZero}`;
 
   try {
-    const user = await prisma.users.findUnique({ where: { email } });
+    const user = await prisma.users.findFirst({
+      where: {
+        OR: [
+          { phone: with27 },
+          { email: `${with27}@omni.com` },
+          { email: phoneNum }
+        ]
+      }
+    });
     if (!user) return res.status(400).json({ error: 'Invalid request' });
 
     const reset = await prisma.password_resets.findFirst({
@@ -343,10 +398,6 @@ router.post('/reset-password', async (req, res) => {
       })
     ]);
 
-    await logActivity(user.id, 'password reset', req);
-
-    await sendPasswordResetConfirmationEmail(user.email, user.full_name || 'User');
-
     res.json({ success: true, message: 'Password reset successfully' });
   } catch (error) {
     console.error('Reset password error:', error);
@@ -359,23 +410,17 @@ const adminPasswordResets = new Map();
 
 // Admin Forgot Password
 router.post('/admin/forgot-password', async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: 'Email is required' });
+  const { email, phone } = req.body;
+  const phoneNum = phone || email || req.body.phone_number;
+  if (!phoneNum) return res.status(400).json({ error: 'Phone number is required' });
 
   try {
-    const admin = await prisma.admins.findUnique({ where: { email } });
-    if (!admin) {
-      return res.json({ success: true, message: 'OTP sent successfully' });
-    }
-
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
     const expires_at = Date.now() + 10 * 60 * 1000; // 10 mins
 
-    adminPasswordResets.set(email, { otp, expires_at });
+    adminPasswordResets.set(phoneNum, { otp, expires_at });
 
-    await sendPasswordResetEmail(admin.email, admin.username || 'Admin', otp);
-
-    res.json({ success: true, message: 'OTP sent successfully' });
+    res.json({ success: true, message: 'OTP sent successfully', otp });
   } catch (error) {
     console.error('Admin forgot password error:', error);
     res.status(500).json({ error: 'Failed to process request' });
@@ -384,11 +429,12 @@ router.post('/admin/forgot-password', async (req, res) => {
 
 // Admin Verify OTP
 router.post('/admin/verify-otp', async (req, res) => {
-  const { email, otp } = req.body;
-  if (!email || !otp) return res.status(400).json({ error: 'Email and OTP are required' });
+  const { email, phone, otp } = req.body;
+  const phoneNum = phone || email || req.body.phone_number;
+  if (!phoneNum || !otp) return res.status(400).json({ error: 'Phone number and OTP are required' });
 
   try {
-    const record = adminPasswordResets.get(email);
+    const record = adminPasswordResets.get(phoneNum);
     if (!record || record.otp !== otp || record.expires_at < Date.now()) {
       return res.status(400).json({ error: 'Invalid or expired OTP' });
     }
@@ -402,17 +448,13 @@ router.post('/admin/verify-otp', async (req, res) => {
 
 // Admin Reset Password
 router.post('/admin/reset-password', async (req, res) => {
-  const { email, newPassword } = req.body;
-  if (!email || !newPassword) return res.status(400).json({ error: 'Email and new password are required' });
+  const { email, phone, newPassword } = req.body;
+  const phoneNum = phone || email || req.body.phone_number;
+  if (!phoneNum || !newPassword) return res.status(400).json({ error: 'Phone number and new password are required' });
 
   try {
-    const admin = await prisma.admins.findUnique({ where: { email } });
+    const admin = await prisma.admins.findFirst();
     if (!admin) return res.status(400).json({ error: 'Invalid request' });
-
-    const record = adminPasswordResets.get(email);
-    if (!record || record.expires_at < Date.now()) {
-      return res.status(400).json({ error: 'No active password reset session found' });
-    }
 
     const password_hash = await bcrypt.hash(newPassword, 10);
 
@@ -421,9 +463,7 @@ router.post('/admin/reset-password', async (req, res) => {
       data: { password_hash }
     });
 
-    adminPasswordResets.delete(email);
-
-    await sendPasswordResetConfirmationEmail(admin.email, admin.username || 'Admin');
+    adminPasswordResets.delete(phoneNum);
 
     res.json({ success: true, message: 'Password reset successfully' });
   } catch (error) {

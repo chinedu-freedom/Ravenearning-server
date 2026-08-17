@@ -9,7 +9,8 @@ datasource db {
 
 model admins {
   id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email         String       @unique
+  phone         String?      @unique
+  email         String?      @unique
   password_hash String
   role          String       @default("admin")
   username      String?
@@ -29,7 +30,8 @@ model admins {
 
 model users {
   id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email            String    @unique
+  phone            String?   @unique
+  email            String?   @unique
   password_hash    String
   withdrawal_pin   String?
   full_name        String
@@ -43,9 +45,6 @@ model users {
   gift_balance     Decimal   @default(0) @db.Decimal(18, 8)
   referral_code    String    @unique
   referred_by      String?   @db.Uuid
-  email_verified   Boolean   @default(true)
-  verification_code String?
-  verification_expires DateTime?
   is_active        Boolean   @default(true)
   last_login       DateTime?
   last_ip          String?

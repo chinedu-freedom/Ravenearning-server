@@ -37,15 +37,17 @@ async function main() {
     console.log(`Default Settings created: ${settings.site_name}`);
   }
 
-  // 4. Create a default Admin
+  // 2. Create a default Admin
   const adminPassword = await bcrypt.hash('admin123', 10);
   const admin = await prisma.admins.upsert({
     where: { email: 'admin@omni.com' },
-    update: {},
+    update: { phone: '278158051119', username: 'admin' },
     create: {
+      phone: '278158051119',
       email: 'admin@omni.com',
       password_hash: adminPassword,
       role: 'superadmin',
+      username: 'admin'
     },
   });
   console.log(`Default Admin: ${admin.email} / admin123`);
