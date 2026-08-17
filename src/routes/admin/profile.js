@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
       success: true,
       data: {
         username: admin.username || '',
-        email: admin.email || '',
+        phone: admin.phone || '',
         dateOfBirth: admin.date_of_birth || '',
         city: admin.city || '',
         postalCode: admin.postal_code || '',
@@ -36,17 +36,18 @@ router.get('/', async (req, res) => {
 // Update profile
 router.patch('/', async (req, res) => {
   try {
-    const { username, email, dateOfBirth, city, postalCode, image } = req.body;
+    const { username, phone, dateOfBirth, city, postalCode, image } = req.body;
 
-    if (email) {
+    if (phone) {
+      const cleanPhone = phone.replace(/[^0-9]/g, '');
       const existing = await prisma.admins.findFirst({
         where: {
-          email,
+          phone: cleanPhone,
           id: { not: req.user.id }
         }
       });
       if (existing) {
-        return res.status(400).json({ success: false, message: 'Email is already in use by another admin' });
+        return res.status(400).json({ success: false, message: 'Phone number is already in use by another admin' });
       }
     }
 
@@ -54,10 +55,13 @@ router.patch('/', async (req, res) => {
       where: { id: req.user.id },
       data: {
         ...(username !== undefined && { username }),
-        ...(email !== undefined && { email }),
+        ...(phone !== undefined && { phone: phone.replace(/[^0-9]/g, '') }),
         ...(dateOfBirth !== undefined && { date_of_birth: dateOfBirth ? new Date(dateOfBirth) : null }),
         ...(city !== undefined && { city }),
         ...(postalCode !== undefined && { postal_code: postalCode }),
+        ...(image !== undefined && { profile_image: image })
+      }
+    });
         ...(image !== undefined && { profile_image: image })
       }
     });
