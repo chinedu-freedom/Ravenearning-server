@@ -123,11 +123,10 @@ router.post('/invest', authenticate, async (req, res) => {
         const levels = [
           { rate: Number(settings.level1_commission || 0) },
           { rate: Number(settings.level2_commission || 0) },
-          { rate: Number(settings.level3_commission || 0) },
-          { rate: Number(settings.level4_commission || 0) }
+          { rate: Number(settings.level3_commission || 0) }
         ];
 
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < levels.length; i++) {
           if (!currentUser.referred_by || levels[i].rate <= 0) break;
           
           const referrerId = currentUser.referred_by;

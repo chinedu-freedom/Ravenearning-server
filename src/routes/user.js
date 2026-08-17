@@ -735,7 +735,6 @@ router.get('/team', authenticate, async (req, res) => {
     const l1Comm = parseFloat(settings?.level1_commission || 0);
     const l2Comm = parseFloat(settings?.level2_commission || 0);
     const l3Comm = parseFloat(settings?.level3_commission || 0);
-    const l4Comm = parseFloat(settings?.level4_commission || 0);
 
     // Get Level 1 Users
     const level1Users = await prisma.users.findMany({
@@ -762,22 +761,11 @@ router.get('/team', authenticate, async (req, res) => {
         include: { investments: true, deposits: true }
       });
     }
-    const l3Ids = level3Users.map(u => u.id);
-
-    // Get Level 4 Users
-    let level4Users = [];
-    if (l3Ids.length > 0) {
-      level4Users = await prisma.users.findMany({
-        where: { referred_by: { in: l3Ids } },
-        include: { investments: true, deposits: true }
-      });
-    }
 
     // Count Valid members (those with at least one investment)
     const l1Valid = level1Users.filter(u => u.investments.length > 0).length;
     const l2Valid = level2Users.filter(u => u.investments.length > 0).length;
     const l3Valid = level3Users.filter(u => u.investments.length > 0).length;
-    const l4Valid = level4Users.filter(u => u.investments.length > 0).length;
 
     // Calculate Total Deposits per level
     const calcDeposits = (users) => users.reduce((acc, user) => {
@@ -788,7 +776,6 @@ router.get('/team', authenticate, async (req, res) => {
     const l1Deposits = calcDeposits(level1Users);
     const l2Deposits = calcDeposits(level2Users);
     const l3Deposits = calcDeposits(level3Users);
-    const l4Deposits = calcDeposits(level4Users);
 
     // Get Referral Commissions
     const commissions = await prisma.referral_commissions.findMany({
@@ -799,13 +786,12 @@ router.get('/team', authenticate, async (req, res) => {
     const l1Earnings = commissions.filter(c => c.level === 1).reduce((acc, c) => acc + parseFloat(c.amount), 0);
     const l2Earnings = commissions.filter(c => c.level === 2).reduce((acc, c) => acc + parseFloat(c.amount), 0);
     const l3Earnings = commissions.filter(c => c.level === 3).reduce((acc, c) => acc + parseFloat(c.amount), 0);
-    const l4Earnings = commissions.filter(c => c.level === 4).reduce((acc, c) => acc + parseFloat(c.amount), 0);
 
     // Get Today's metrics
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const allTeamMembers = [...level1Users, ...level2Users, ...level3Users, ...level4Users];
+    const allTeamMembers = [...level1Users, ...level2Users, ...level3Users];
     const newMembersToday = allTeamMembers.filter(u => new Date(u.created_at) >= today).length;
 
     const newEarningsToday = commissions
@@ -844,14 +830,6 @@ router.get('/team', authenticate, async (req, res) => {
             commission_rate: l3Comm,
             total_earnings: l3Earnings,
             total_deposits: l3Deposits
-          },
-          {
-            level: 4,
-            total_members: level4Users.length,
-            valid_members: l4Valid,
-            commission_rate: l4Comm,
-            total_earnings: l4Earnings,
-            total_deposits: l4Deposits
           }
         ]
       }
@@ -897,23 +875,6 @@ router.get('/team/list', authenticate, async (req, res) => {
             where: { referred_by: { in: l2Ids } },
             include: { investments: true, deposits: true }
           });
-        }
-      } else if (level === 4 && l1Ids.length > 0) {
-        const level2Users = await prisma.users.findMany({
-          where: { referred_by: { in: l1Ids } }
-        });
-        const l2Ids = level2Users.map(u => u.id);
-        if (l2Ids.length > 0) {
-          const level3Users = await prisma.users.findMany({
-            where: { referred_by: { in: l2Ids } }
-          });
-          const l3Ids = level3Users.map(u => u.id);
-          if (l3Ids.length > 0) {
-            targetUsers = await prisma.users.findMany({
-              where: { referred_by: { in: l3Ids } },
-              include: { investments: true, deposits: true }
-            });
-          }
         }
       }
     }
