@@ -211,7 +211,15 @@ router.post('/admin/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const admin = await prisma.admins.findUnique({ where: { email } });
+    const cleanEmail = email ? email.toLowerCase().trim() : '';
+    const admin = await prisma.admins.findFirst({
+      where: {
+        OR: [
+          { email: cleanEmail },
+          { username: email ? email.trim() : '' }
+        ]
+      }
+    });
     if (!admin) {
       return res.status(401).json({ error: 'Invalid admin credentials' });
     }
