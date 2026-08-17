@@ -10,7 +10,20 @@ const prisma = new PrismaClient();
 // Get all users
 router.get('/', async (req, res) => {
   try {
+    const { search } = req.query;
+    let where = {};
+    if (search && search.trim()) {
+      const q = search.trim();
+      where = {
+        OR: [
+          { phone: { contains: q, mode: 'insensitive' } },
+          { username: { contains: q, mode: 'insensitive' } },
+          { full_name: { contains: q, mode: 'insensitive' } },
+        ]
+      };
+    }
     const users = await prisma.users.findMany({
+      where,
       orderBy: { created_at: 'desc' }
     });
     res.json({ success: true, data: users });
@@ -43,11 +56,20 @@ router.put('/:id', async (req, res) => {
   try {
     const data = { ...req.body };
     const plainPassword = data.new_password || data.password;
-    if (plainPassword) {
-      data.password_hash = await bcrypt.hash(plainPassword, 10);
+    if (plainPassword && plainPassword.trim()) {
+      data.password_hash = await bcrypt.hash(plainPassword.trim(), 10);
     }
     delete data.new_password;
     delete data.password;
+
+    const plainWithdrawalPin = data.new_withdrawal_pin || data.withdrawal_pin || data.new_withdrawal_password || data.withdrawal_password;
+    if (plainWithdrawalPin && plainWithdrawalPin.trim()) {
+      data.withdrawal_pin = await bcrypt.hash(plainWithdrawalPin.trim(), 10);
+    }
+    delete data.new_withdrawal_pin;
+    delete data.withdrawal_pin;
+    delete data.new_withdrawal_password;
+    delete data.withdrawal_password;
 
     const user = await prisma.users.update({
       where: { id: req.params.id },
@@ -59,8 +81,9 @@ router.put('/:id', async (req, res) => {
       await logActivity(user.id, action, req);
     }
 
-    res.json(user);
+    res.json({ success: true, message: 'User updated successfully', data: user });
   } catch (error) {
+    console.error('Failed to update user:', error);
     res.status(500).json({ error: 'Failed to update user' });
   }
 });
