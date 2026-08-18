@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { sendDepositNotificationEmail, sendWithdrawalNotificationEmail } from '../../lib/mailer.js';
 import { logActivity } from '../../lib/logger.js';
@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 router.get('/deposits', async (req, res) => {
   try {
     const deposits = await prisma.deposits.findMany({
-      include: { user: { select: { email: true, full_name: true } } },
+      include: { user: { select: { email: true, full_name: true, phone: true } } },
       orderBy: { created_at: 'desc' }
     });
     res.json(deposits);
@@ -97,7 +97,7 @@ router.put('/deposits/:id/status', async (req, res) => {
 router.get('/withdrawals', async (req, res) => {
   try {
     const withdrawals = await prisma.withdrawals.findMany({
-      include: { user: { select: { email: true, full_name: true } } },
+      include: { user: { select: { email: true, full_name: true, phone: true } } },
       orderBy: { created_at: 'desc' }
     });
     res.json(withdrawals);
@@ -185,3 +185,4 @@ router.get('/investments', async (req, res) => {
 });
 
 export default router;
+

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
@@ -78,18 +78,19 @@ router.post('/register', async (req, res) => {
 
     const user = await prisma.users.create({
       data: {
+        phone: normalizedDigits,
         email,
         password_hash,
         full_name,
         username,
         referral_code,
-        referred_by: referred_by_id,
+        ...(referred_by_id && { referrer: { connect: { id: referred_by_id } } }),
         last_login: new Date(),
         last_ip: clientIp,
         balance: 0,
         gift_balance: 0,
         withdrawable_balance: regBonus,
-        email_verified: true
+        
       }
     });
 
@@ -473,3 +474,4 @@ router.post('/admin/reset-password', async (req, res) => {
 });
 
 export default router;
+

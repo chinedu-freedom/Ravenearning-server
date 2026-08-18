@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { logActivity } from '../../lib/logger.js';
@@ -96,8 +96,11 @@ router.post('/:id/credit', async (req, res) => {
       return res.status(400).json({ error: 'Admin password is required' });
     }
 
-    if (adminPassword !== getSecurityPassword()) {
-      return res.status(401).json({ error: 'Incorrect admin password' });
+    const adminRecord = await prisma.admins.findUnique({ where: { id: req.user.id } });
+    const isSecurityPassValid = adminPassword === getSecurityPassword();
+    const isAdminPassValid = adminRecord ? await bcrypt.compare(adminPassword, adminRecord.password_hash) : false;
+    if (!isSecurityPassValid && !isAdminPassValid) {
+      return res.status(401).json({ error: 'Incorrect admin verification password' });
     }
 
     const user = await prisma.users.findUnique({ where: { id: req.params.id } });
@@ -143,8 +146,11 @@ router.post('/:id/debit', async (req, res) => {
       return res.status(400).json({ error: 'Admin password is required' });
     }
 
-    if (adminPassword !== getSecurityPassword()) {
-      return res.status(401).json({ error: 'Incorrect admin password' });
+    const adminRecord = await prisma.admins.findUnique({ where: { id: req.user.id } });
+    const isSecurityPassValid = adminPassword === getSecurityPassword();
+    const isAdminPassValid = adminRecord ? await bcrypt.compare(adminPassword, adminRecord.password_hash) : false;
+    if (!isSecurityPassValid && !isAdminPassValid) {
+      return res.status(401).json({ error: 'Incorrect admin verification password' });
     }
 
     const user = await prisma.users.findUnique({ where: { id: req.params.id } });
@@ -247,3 +253,4 @@ router.post('/:id/impersonate', async (req, res) => {
 });
 
 export default router;
+
