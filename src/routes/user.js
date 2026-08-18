@@ -1323,9 +1323,9 @@ router.post('/withdraw', authenticate, async (req, res) => {
 
     // Fetch global settings
     const settings = await prisma.settings.findFirst();
-    const minAmount = Number(settings?.min_withdrawal || 2000);
+    const minAmount = Number(settings?.min_withdrawal || 100);
     const maxAmount = Number(settings?.max_withdrawal || 5000000);
-    const feeRate = Number(settings?.withdrawal_charge || 20) / 100;
+    const feeRate = Number(settings?.withdrawal_charge || 15) / 100;
     const symbol = settings?.currency_symbol || 'R';
 
     if (Number(amount) < minAmount) {
