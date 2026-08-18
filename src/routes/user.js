@@ -983,7 +983,7 @@ router.get('/spin', authenticate, async (req, res) => {
       } else {
         prizes.push({
           id: `placeholder-${i}`,
-          name: `$0.00`,
+          name: `R0.00`,
           value: 0.00,
           weight: 100,
           position: i + 1,
@@ -1125,7 +1125,7 @@ router.post('/spin', authenticate, async (req, res) => {
       } else {
         prizes.push({
           id: `placeholder-${i}`,
-          name: `$0.00`,
+          name: `R0.00`,
           value: 0.00,
           weight: 100,
           position: i + 1,
@@ -1488,14 +1488,14 @@ router.get('/spin', authenticate, async (req, res) => {
     if (activePrizes.length === 0) {
       // Create standard default prizes
       const defaultPrizes = [
-        { position: 1, name: "$0.50", value: 0.50, weight: 300, probability: 0.30, color: "#3b82f6", icon: "Coins" },
-        { position: 2, name: "$2.50", value: 2.50, weight: 100, probability: 0.10, color: "#3b82f6", icon: "Coins" },
-        { position: 3, name: "$0.20", value: 0.20, weight: 200, probability: 0.20, color: "#3b82f6", icon: "Coins" },
-        { position: 4, name: "$10.50", value: 10.50, weight: 15, probability: 0.015, color: "#3b82f6", icon: "Coins" },
-        { position: 5, name: "$0.77", value: 0.77, weight: 150, probability: 0.150, color: "#3b82f6", icon: "Coins" },
-        { position: 6, name: "$15.15", value: 15.15, weight: 10, probability: 0.010, color: "#3b82f6", icon: "Banknote" },
-        { position: 7, name: "$1.25", value: 1.25, weight: 80, probability: 0.080, color: "#3b82f6", icon: "Coins" },
-        { position: 8, name: "$20.20", value: 20.20, weight: 5, probability: 0.005, color: "#3b82f6", icon: "Banknote" },
+        { position: 1, name: "R5.00", value: 5.00, weight: 300, probability: 0.30, color: "#3b82f6", icon: "Coins" },
+        { position: 2, name: "R10.00", value: 10.00, weight: 100, probability: 0.10, color: "#3b82f6", icon: "Coins" },
+        { position: 3, name: "R2.00", value: 2.00, weight: 200, probability: 0.20, color: "#3b82f6", icon: "Coins" },
+        { position: 4, name: "R50.00", value: 50.00, weight: 15, probability: 0.015, color: "#3b82f6", icon: "Coins" },
+        { position: 5, name: "R15.00", value: 15.00, weight: 150, probability: 0.150, color: "#3b82f6", icon: "Coins" },
+        { position: 6, name: "R100.00", value: 100.00, weight: 10, probability: 0.010, color: "#3b82f6", icon: "Banknote" },
+        { position: 7, name: "R25.00", value: 25.00, weight: 80, probability: 0.080, color: "#3b82f6", icon: "Coins" },
+        { position: 8, name: "R500.00", value: 500.00, weight: 5, probability: 0.005, color: "#3b82f6", icon: "Banknote" },
       ];
       for (const p of defaultPrizes) {
         await prisma.spin_prizes.create({ data: p });
@@ -1514,7 +1514,7 @@ router.get('/spin', authenticate, async (req, res) => {
       } else {
         prizes.push({
           id: `placeholder-${i}`,
-          name: `$0.00`,
+          name: `R0.00`,
           value: 0.00,
           weight: 100,
           position: i + 1,
@@ -1751,5 +1751,6 @@ router.post('/spin', authenticate, async (req, res) => {
 });
 
 export default router;
+
 
 
