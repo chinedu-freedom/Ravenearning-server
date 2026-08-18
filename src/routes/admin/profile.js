@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
@@ -62,16 +62,13 @@ router.patch('/', async (req, res) => {
         ...(image !== undefined && { profile_image: image })
       }
     });
-        ...(image !== undefined && { profile_image: image })
-      }
-    });
 
     res.json({
       success: true,
       message: 'Profile updated successfully',
       data: {
         username: updated.username || '',
-        email: updated.email || '',
+        phone: updated.phone || '',
         dateOfBirth: updated.date_of_birth || '',
         city: updated.city || '',
         postalCode: updated.postal_code || '',
