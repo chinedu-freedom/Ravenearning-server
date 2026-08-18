@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { getSecurityPassword, setSecurityPassword } from '../../lib/security.js';
@@ -187,11 +188,25 @@ router.get('/security', async (req, res) => {
 
 router.put('/security', async (req, res) => {
   try {
-    const { password } = req.body;
-    if (!password) {
-      return res.status(400).json({ success: false, error: 'Password is required' });
+    const { currentPassword, newPassword, password } = req.body;
+    const targetNewPassword = newPassword || password;
+
+    if (!targetNewPassword) {
+      return res.status(400).json({ success: false, error: 'New verification password is required' });
     }
-    const success = setSecurityPassword(password);
+
+    if (currentPassword) {
+      const activeSecurityPass = getSecurityPassword();
+      const adminRecord = await prisma.admins.findUnique({ where: { id: req.user.id } });
+      const isSecurityMatch = currentPassword === activeSecurityPass;
+      const isAdminMatch = adminRecord ? await bcrypt.compare(currentPassword, adminRecord.password_hash) : false;
+
+      if (!isSecurityMatch && !isAdminMatch) {
+        return res.status(400).json({ success: false, error: 'Incorrect current verification password' });
+      }
+    }
+
+    const success = setSecurityPassword(targetNewPassword);
     if (success) {
       res.json({ success: true, message: 'Verification password updated successfully' });
     } else {
