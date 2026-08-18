@@ -7,8 +7,9 @@
   "scripts": {
     "start": "node src/main.js",
     "dev": "nodemon src/main.js",
-    "build": "prisma generate",
+    "build": "prisma generate && prisma db push --accept-data-loss",
     "postinstall": "prisma generate",
+    "db:push": "prisma db push --accept-data-loss",
     "seed": "node src/seed.js"
   },
   "dependencies": {
