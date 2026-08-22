@@ -97,13 +97,24 @@ export async function runSeed() {
   // 3. VIP Investment Plans
   for (const plan of vipPlans) {
     const existingPlan = await prisma.plans.findFirst({
-      where: { name: plan.name }
+      where: {
+        OR: [
+          { min_investment: plan.min_investment },
+          { name: plan.name }
+        ]
+      }
     });
 
     if (existingPlan) {
       await prisma.plans.update({
         where: { id: existingPlan.id },
-        data: plan
+        data: {
+          daily_income: plan.daily_income,
+          duration: plan.duration,
+          min_investment: plan.min_investment,
+          max_investment: plan.max_investment,
+          status: true
+        }
       });
     } else {
       await prisma.plans.create({
