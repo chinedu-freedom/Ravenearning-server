@@ -13,7 +13,7 @@ const defaultSettings = {
   currency_symbol: 'R',
   timezone: 'Africa/Johannesburg',
   platform_logo: '/logo.png',
-  registration_bonus: 0,
+  registration_bonus: 100,
   welcome_bonus_destination: 'withdrawable_balance',
   daily_withdrawal_limit: 100000,
   min_withdrawal: 100,
