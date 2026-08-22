@@ -104,6 +104,7 @@ model plans {
   capital_return    Boolean  @default(true)
   is_fixed_deposit  Boolean  @default(false)
   status            Boolean  @default(true)
+  is_sold_out       Boolean  @default(false)
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 

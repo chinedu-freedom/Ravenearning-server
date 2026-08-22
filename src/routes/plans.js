@@ -48,6 +48,10 @@ router.post('/invest', authenticate, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Plan not found or inactive' });
     }
 
+    if (plan.is_sold_out) {
+      return res.status(400).json({ success: false, error: 'This VIP product is currently sold out.' });
+    }
+
     const investAmount = Number(amount);
     if (isNaN(investAmount) || investAmount < Number(plan.min_investment) || investAmount > Number(plan.max_investment)) {
       return res.status(400).json({ success: false, error: `Investment must be between ${plan.min_investment} and ${plan.max_investment}` });
