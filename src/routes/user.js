@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate } from '../middleware/auth.js';
 import bcrypt from 'bcrypt';
@@ -35,11 +35,7 @@ router.get('/', async (req, res) => {
 router.get('/me', authenticate, async (req, res) => {
   try {
     const user = await prisma.users.findUnique({
-      where: { id: req.user.id },
-      include: {
-        country: true,
-        language: true
-      }
+      where: { id: req.user.id }
     });
 
     if (!user) {
@@ -73,6 +69,35 @@ router.get('/me', authenticate, async (req, res) => {
       where: { referred_by: req.user.id }
     });
 
+    let referralCode = user.referral_code ? String(user.referral_code) : "";
+    if (!referralCode || referralCode.startsWith('SA') || referralCode.length !== 6 || /^\d+$/.test(referralCode)) {
+      let isUnique = false;
+      let attempts = 0;
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      while (!isUnique && attempts < 20) {
+        attempts++;
+        referralCode = '';
+        for (let i = 0; i < 6; i++) {
+          referralCode += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        const existing = await prisma.users.findFirst({
+          where: { referral_code: referralCode }
+        });
+        if (!existing) {
+          isUnique = true;
+        }
+      }
+      try {
+        await prisma.users.update({
+          where: { id: user.id },
+          data: { referral_code: referralCode }
+        });
+      } catch (err) {
+        console.error("Failed to update referral code:", err);
+        referralCode = user.phone || user.username || user.id;
+      }
+    }
+
     const bankDetails = user.bank_account_number ? {
       account_name: user.bank_account_name,
       bank_name: user.bank_name,
@@ -83,6 +108,7 @@ router.get('/me', authenticate, async (req, res) => {
       success: true,
       user: {
         id: user.id,
+        phone: user.phone,
         email: user.email,
         full_name: user.full_name,
         username: user.username,
@@ -92,7 +118,7 @@ router.get('/me', authenticate, async (req, res) => {
         gift_balance: user.gift_balance,
         country: { country_name: 'South Africa', currency_symbol: 'R', currency_code: 'ZAR' },
         language: { language_name: 'English', language_code: 'en' },
-        referral_code: user.referral_code,
+        referral_code: referralCode,
         has_withdrawal_pin: !!user.withdrawal_pin,
         bank_details: bankDetails,
         email_verified: user.email_verified,
@@ -106,6 +132,7 @@ router.get('/me', authenticate, async (req, res) => {
       }
     });
   } catch (error) {
+    console.error("Error fetching user profile in /users/me:", error);
     res.status(500).json({ success: false, error: 'Failed to fetch user profile' });
   }
 });
@@ -1437,6 +1464,208 @@ router.post('/withdraw', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Withdrawal error:', error);
     res.status(500).json({ success: false, message: 'Failed to process withdrawal request' });
+  }
+});
+
+// GET /users/daily-checkin - Get daily checkin streak & rewards
+router.get('/daily-checkin', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    let checkinConfig = await prisma.daily_checkins.findMany({
+      where: { status: true },
+      orderBy: { day_number: 'asc' }
+    });
+
+    if (checkinConfig.length === 0) {
+      const defaults = [
+        { day_number: 1, reward_amount: 5, description: 'Day 1 Check-in Reward' },
+        { day_number: 2, reward_amount: 10, description: 'Day 2 Check-in Reward' },
+        { day_number: 3, reward_amount: 15, description: 'Day 3 Check-in Reward' },
+        { day_number: 4, reward_amount: 20, description: 'Day 4 Check-in Reward' },
+        { day_number: 5, reward_amount: 25, description: 'Day 5 Check-in Reward' },
+        { day_number: 6, reward_amount: 30, description: 'Day 6 Check-in Reward' },
+        { day_number: 7, reward_amount: 50, description: 'Day 7 Check-in Reward' }
+      ];
+      for (const item of defaults) {
+        await prisma.daily_checkins.create({ data: item });
+      }
+      checkinConfig = await prisma.daily_checkins.findMany({
+        where: { status: true },
+        orderBy: { day_number: 'asc' }
+      });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const history = await prisma.user_checkins.findMany({
+      where: { user_id: userId },
+      orderBy: { checkin_date: 'desc' },
+      take: 7
+    });
+
+    let currentStreak = 0;
+    let claimedToday = false;
+    let lastClaimDate = null;
+
+    if (history.length > 0) {
+      lastClaimDate = new Date(history[0].checkin_date);
+      lastClaimDate.setHours(0, 0, 0, 0);
+
+      if (lastClaimDate.getTime() === today.getTime()) {
+        claimedToday = true;
+        currentStreak = history[0].day_number;
+      } else {
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        if (lastClaimDate.getTime() === yesterday.getTime()) {
+          currentStreak = history[0].day_number;
+        } else {
+          currentStreak = 0;
+        }
+      }
+    }
+
+    const maxDays = checkinConfig.length;
+    let nextDayNumber = currentStreak + 1;
+    if (nextDayNumber > maxDays) {
+      if (!claimedToday) {
+        currentStreak = 0;
+        nextDayNumber = 1;
+      }
+    }
+
+    const rewards = checkinConfig.map(config => ({
+      day: config.day_number,
+      amount: config.reward_amount,
+      status: config.day_number <= currentStreak 
+        ? 'claimed' 
+        : (config.day_number === (claimedToday ? currentStreak : currentStreak + 1) 
+            ? (claimedToday ? 'claimed' : 'available') 
+            : 'locked')
+    }));
+
+    res.json({
+      success: true,
+      enabled: user.can_access_checkin ?? true,
+      claimedToday,
+      currentStreak,
+      maxDays,
+      rewards
+    });
+  } catch (error) {
+    console.error('Checkin status error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch checkin status' });
+  }
+});
+
+// POST /users/daily-checkin/claim - Claim daily checkin reward
+router.post('/daily-checkin/claim', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+
+    if (!user || user.can_access_checkin === false) {
+      return res.status(403).json({ success: false, error: 'Check-in is disabled' });
+    }
+
+    const checkinConfig = await prisma.daily_checkins.findMany({
+      where: { status: true },
+      orderBy: { day_number: 'asc' }
+    });
+
+    if (checkinConfig.length === 0) {
+      return res.status(400).json({ success: false, error: 'Daily check-in is currently unavailable' });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const history = await prisma.user_checkins.findMany({
+      where: { user_id: userId },
+      orderBy: { checkin_date: 'desc' },
+      take: 1
+    });
+
+    let currentStreak = 0;
+    if (history.length > 0) {
+      const lastClaimDate = new Date(history[0].checkin_date);
+      lastClaimDate.setHours(0, 0, 0, 0);
+
+      if (lastClaimDate.getTime() === today.getTime()) {
+        return res.status(400).json({ success: false, error: 'Already claimed today' });
+      }
+
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      if (lastClaimDate.getTime() === yesterday.getTime()) {
+        currentStreak = history[0].day_number;
+      }
+    }
+
+    const maxDays = checkinConfig.length;
+    let claimDay = currentStreak + 1;
+    if (claimDay > maxDays) {
+      claimDay = 1;
+    }
+
+    const rewardConfig = checkinConfig.find(c => c.day_number === claimDay);
+    if (!rewardConfig) {
+      return res.status(400).json({ success: false, error: 'Reward configuration error' });
+    }
+
+    const rewardAmount = Number(rewardConfig.reward_amount);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.user_checkins.create({
+        data: {
+          user_id: userId,
+          day_number: claimDay,
+          reward_amount: rewardAmount,
+          checkin_date: new Date()
+        }
+      });
+
+      const updatedUser = await tx.users.update({
+        where: { id: userId },
+        data: {
+          balance: { increment: rewardAmount },
+          withdrawable_balance: { increment: rewardAmount }
+        }
+      });
+
+      const balanceBefore = Number(user.balance);
+      const balanceAfter = Number(updatedUser.balance);
+
+      await tx.transactions.create({
+        data: {
+          user_id: userId,
+          type: 'daily_reward',
+          amount: rewardAmount,
+          balance_before: balanceBefore,
+          balance_after: balanceAfter,
+          description: `Daily Check-in reward (Day ${claimDay})`
+        }
+      });
+    });
+
+    const settings = await prisma.settings.findFirst();
+    const symbol = settings?.currency_symbol || 'R';
+
+    res.json({
+      success: true,
+      message: `Successfully claimed ${symbol}${rewardAmount} for Day ${claimDay}`,
+      amount: rewardAmount,
+      day: claimDay
+    });
+  } catch (error) {
+    console.error('Checkin claim error:', error);
+    res.status(500).json({ success: false, error: 'Failed to claim reward' });
   }
 });
 

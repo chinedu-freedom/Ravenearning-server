@@ -98,7 +98,7 @@ model plans {
   name              String
   description       String?
   duration          Int      // in days
-  daily_income      Decimal  @db.Decimal(10, 6) // percentage
+  daily_income      Decimal  @db.Decimal(18, 8)
   min_investment    Decimal  @db.Decimal(18, 8)
   max_investment    Decimal  @db.Decimal(18, 8)
   capital_return    Boolean  @default(true)

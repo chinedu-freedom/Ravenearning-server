@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 
 import { authenticate } from '../middleware/auth.js';
@@ -65,7 +65,8 @@ router.post('/invest', authenticate, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Insufficient Balance. Please fund your account and try again.' });
     }
 
-    const dailyProfit = investAmount * (Number(plan.daily_income) / 100);
+    const rawDaily = Number(plan.daily_income || 0);
+    const dailyProfit = (rawDaily > 1 && rawDaily < investAmount) ? rawDaily : (rawDaily <= 1 ? investAmount * rawDaily : (investAmount * rawDaily) / 100);
     const startDate = new Date();
     const endDate = new Date();
     endDate.setDate(startDate.getDate() + plan.duration);

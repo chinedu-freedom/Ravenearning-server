@@ -18,17 +18,16 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'Phone number is required' });
   }
 
-  const rawDigits = phoneNum ? phoneNum.replace(/[^0-9]/g, '') : '';
-  const noZero = rawDigits.startsWith('0') ? rawDigits.substring(1) : rawDigits;
-  const normalizedDigits = noZero.startsWith('27') ? noZero : `27${noZero}`;
+  const userPhone = phoneNum ? String(phoneNum).trim() : '';
+  const rawDigits = userPhone.replace(/[^0-9]/g, '');
   
   if (!email) {
-    email = `${normalizedDigits}@omni.com`;
+    email = `${userPhone}@omni.com`;
   }
   if (!full_name) {
-    full_name = `Member ${normalizedDigits.slice(-4)}`;
+    full_name = `Member ${userPhone.slice(-4)}`;
   }
-  const username = normalizedDigits;
+  const username = userPhone;
 
   if (!password) {
     return res.status(400).json({ error: 'Password is required' });
@@ -38,9 +37,10 @@ router.post('/register', async (req, res) => {
     const existingUser = await prisma.users.findFirst({
       where: {
         OR: [
-          { email },
-          { email: `${rawDigits}@omni.com` },
-          { email: `${normalizedDigits}@omni.com` }
+          { phone: userPhone },
+          { phone: rawDigits },
+          { username: userPhone },
+          { email }
         ]
       }
     });
@@ -51,16 +51,31 @@ router.post('/register', async (req, res) => {
 
     const password_hash = await bcrypt.hash(password, 10);
     
-    // Generate unique referral code (RAND + random digits)
-    const referral_code = `SA${Math.floor(100000 + Math.random() * 900000)}`;
+    // Generate clean 6-character unique alphanumeric referral code (e.g. R8K9X2)
+    let referral_code = "";
+    let isUnique = false;
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    while (!isUnique) {
+      referral_code = '';
+      for (let i = 0; i < 6; i++) {
+        referral_code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      const existing = await prisma.users.findFirst({
+        where: { referral_code }
+      });
+      if (!existing) {
+        isUnique = true;
+      }
+    }
 
     let referred_by_id = null;
     if (referred_by_code) {
+      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(referred_by_code);
       const referrer = await prisma.users.findFirst({ 
         where: { 
           OR: [
-            { referral_code: referred_by_code },
-            { id: referred_by_code }
+            { referral_code: String(referred_by_code).trim() },
+            ...(isUuid ? [{ id: referred_by_code }] : [])
           ]
         } 
       });
@@ -78,7 +93,7 @@ router.post('/register', async (req, res) => {
 
     const user = await prisma.users.create({
       data: {
-        phone: normalizedDigits,
+        phone: userPhone,
         email,
         password_hash,
         full_name,
@@ -115,7 +130,7 @@ router.post('/register', async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        phone: normalizedDigits,
+        phone: user.phone,
         full_name: user.full_name,
         balance: user.balance,
         withdrawable_balance: user.withdrawable_balance

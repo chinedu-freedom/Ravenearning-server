@@ -17,9 +17,11 @@ router.get('/', async (req, res) => {
 // Create new plan
 router.post('/', async (req, res) => {
   try {
-    const plan = await prisma.plans.create({ data: req.body });
+    const { total_revenue, ...validData } = req.body;
+    const plan = await prisma.plans.create({ data: validData });
     res.status(201).json({ message: 'Plan created successfully', success: true, plan });
   } catch (error) {
+    console.error('Create plan error:', error);
     res.status(500).json({ error: 'Failed to create plan', details: error.message });
   }
 });
@@ -27,13 +29,15 @@ router.post('/', async (req, res) => {
 // Update plan
 router.put('/:id', async (req, res) => {
   try {
+    const { total_revenue, ...validData } = req.body;
     const plan = await prisma.plans.update({
       where: { id: req.params.id },
-      data: req.body
+      data: validData
     });
     res.json({ message: 'Plan updated successfully', success: true, plan });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update plan' });
+    console.error('Update plan error:', error);
+    res.status(500).json({ error: 'Failed to update plan', details: error.message });
   }
 });
 
