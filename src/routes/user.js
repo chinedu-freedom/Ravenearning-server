@@ -1369,6 +1369,18 @@ router.post('/withdraw', authenticate, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    // Require at least 1 investment package to unlock withdrawals / registration bonus
+    const userInvestmentsCount = await prisma.investments.count({
+      where: { user_id: userId }
+    });
+
+    if (userInvestmentsCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Withdrawal locked. You must activate an investment package before you can withdraw.'
+      });
+    }
+
     // Verify withdrawal password if provided and user has withdrawal pin
     if (password && user.withdrawal_pin) {
       const isPasswordValid = await bcrypt.compare(password, user.withdrawal_pin);
