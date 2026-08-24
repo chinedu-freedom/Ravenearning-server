@@ -390,6 +390,13 @@ model settings {
   max_deposit              Decimal  @default(100000) @db.Decimal(18, 8)
   deposit_charge           Decimal  @default(0) @db.Decimal(5, 2)
   
+  // Quick Pay Automatic Gateway
+  quickpay_enabled         Boolean  @default(true)
+  quickpay_merchant        String   @default("customerTest01")
+  quickpay_key             String   @default("147258")
+  quickpay_url             String   @default("https://safricaapi.quickn.vip")
+  quickpay_channel         String   @default("8001")
+
   // Withdrawal settings
   daily_withdrawal_limit   Decimal  @db.Decimal(18, 8)
   withdrawal_open_time     String?  // HH:MM format

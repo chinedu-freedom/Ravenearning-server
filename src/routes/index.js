@@ -13,11 +13,80 @@ router.use('/admin', adminRoutes);
 router.use('/plans', plansRoutes);
 router.use('/settings', settingsRoutes);
 
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
+
 // Safe empty fallbacks for legacy content endpoints
 router.get('/sliders', (req, res) => res.json({ success: true, data: [] }));
 router.get('/partners', (req, res) => res.json({ success: true, data: [] }));
 router.get('/news', (req, res) => res.json({ success: true, data: [] }));
 router.get('/live-market', (req, res) => res.json({ success: true, data: [] }));
 router.get('/team-members', (req, res) => res.json({ success: true, data: [] }));
+
+// Quick Pay Gateway Webhook Callback Handler
+router.post('/quickpay-webhook', async (req, res) => {
+  try {
+    const payload = req.body || {};
+    console.log('QuickPay Webhook Payload Received:', JSON.stringify(payload));
+
+    const data = payload.data || payload;
+    const { payOrderId, tradeState, status, amount, payAmount } = data;
+
+    const isSuccess = (tradeState === 'SUCCESS' || status === 'success' || tradeState === 'success');
+
+    if (isSuccess && payOrderId) {
+      const deposit = await prisma.deposits.findFirst({
+        where: {
+          OR: [
+            { track_id: payOrderId },
+            { id: payOrderId.replace('DEP-', '').split('-')[0] }
+          ]
+        },
+        include: { user: true }
+      });
+
+      if (deposit && deposit.status !== 'approved') {
+        const approvedAmount = Number(payAmount || amount || deposit.amount);
+
+        await prisma.$transaction(async (tx) => {
+          await tx.deposits.update({
+            where: { id: deposit.id },
+            data: {
+              status: 'approved',
+              approved_at: new Date()
+            }
+          });
+
+          const userBefore = await tx.users.findUnique({ where: { id: deposit.user_id } });
+          const balanceBefore = Number(userBefore.balance);
+          const balanceAfter = balanceBefore + approvedAmount;
+
+          await tx.users.update({
+            where: { id: deposit.user_id },
+            data: { balance: balanceAfter }
+          });
+
+          await tx.transactions.create({
+            data: {
+              user_id: deposit.user_id,
+              type: 'DEPOSIT',
+              amount: approvedAmount,
+              balance_before: balanceBefore,
+              balance_after: balanceAfter,
+              description: `Quick Pay Online Deposit (${deposit.cryptocurrency || 'ZAR'})`
+            }
+          });
+        });
+
+        console.log(`QuickPay Deposit ${deposit.id} auto-approved for ${deposit.user_id}`);
+      }
+    }
+
+    return res.status(200).send('OK');
+  } catch (err) {
+    console.error('QuickPay Webhook Error:', err);
+    return res.status(200).send('OK');
+  }
+});
 
 export default router;

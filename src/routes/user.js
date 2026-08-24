@@ -1280,6 +1280,31 @@ router.post('/spin', authenticate, async (req, res) => {
   }
 });
 
+import crypto from 'crypto';
+
+function buildQuickPaySign(params, md5Key) {
+  const keys = Object.keys(params).sort();
+  const pairs = [];
+  for (const key of keys) {
+    const val = params[key];
+    if (val !== null && val !== undefined && val !== '' && key !== 'sign') {
+      pairs.push(`${key}=${val}`);
+    }
+  }
+  const strToSign = pairs.join('&') + '&key=' + md5Key;
+  return crypto.createHash('md5').update(strToSign, 'utf8').digest('hex').toUpperCase();
+}
+
+function getQuickPayFormattedTime(date = new Date()) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  const ss = String(date.getSeconds()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+}
+
 router.post('/deposit', authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -1289,7 +1314,7 @@ router.post('/deposit', authenticate, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Valid amount is required' });
     }
 
-    let cryptoLabel = "Official Recharge (Bank Transfer)";
+    let cryptoLabel = "Quick Pay Online Gateway";
     if (cryptoId) {
       const cryptoOption = await prisma.payout_cryptocurrencies.findUnique({
         where: { id: cryptoId }
@@ -1303,7 +1328,7 @@ router.post('/deposit', authenticate, async (req, res) => {
 
     // Fetch global settings for deposit limits
     const settings = await prisma.settings.findFirst();
-    const minDep = Number(settings?.min_deposit || 1000);
+    const minDep = Number(settings?.min_deposit || 100);
     const maxDep = Number(settings?.max_deposit || 10000000);
     const symbol = settings?.currency_symbol || 'R';
 
@@ -1311,7 +1336,7 @@ router.post('/deposit', authenticate, async (req, res) => {
       return res.status(400).json({ success: false, message: `Amount must be between ${symbol}${minDep} and ${symbol}${maxDep}` });
     }
 
-    // Create deposit record directly for admin review
+    // Create deposit record
     const chargePercent = Number(settings?.deposit_charge || 0);
     const totalAmount = Number(amount) * (1 + chargePercent / 100);
 
@@ -1325,6 +1350,53 @@ router.post('/deposit', authenticate, async (req, res) => {
     });
 
     await logActivity(userId, 'deposit initiated', req, { amount, cryptocurrency: cryptoLabel });
+
+    // Check if Quick Pay automatic gateway is enabled
+    if (settings?.quickpay_enabled && settings?.quickpay_merchant && settings?.quickpay_key) {
+      try {
+        const payOrderId = `DEP-${deposit.id.slice(0, 8)}-${Date.now()}`;
+        const payAmountStr = Number(amount).toFixed(2);
+        const notifyUrl = `${process.env.BACKEND_URL || 'https://ravenearning-server.onrender.com'}/api/quickpay-webhook`;
+
+        const qPayload = {
+          payMemberId: settings.quickpay_merchant,
+          payOrderId: payOrderId,
+          payApplyDate: getQuickPayFormattedTime(),
+          payChannelCode: settings.quickpay_channel || '8001',
+          payNotifyUrl: notifyUrl,
+          payAmount: payAmountStr
+        };
+
+        qPayload.sign = buildQuickPaySign(qPayload, settings.quickpay_key);
+
+        const qRes = await fetch(`${settings.quickpay_url || 'https://safricaapi.quickn.vip'}/api/pay/createPay`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(qPayload)
+        });
+
+        const qJson = await qRes.json();
+
+        if ((qJson.code === 200 || qJson.code === 0) && qJson.data?.payUrl) {
+          // Update track_id on deposit
+          await prisma.deposits.update({
+            where: { id: deposit.id },
+            data: { track_id: payOrderId }
+          });
+
+          return res.json({
+            success: true,
+            message: 'Quick Pay invoice generated. Redirecting to payment checkout...',
+            payUrl: qJson.data.payUrl,
+            trackId: payOrderId,
+            deposit,
+            payableAmount: totalAmount
+          });
+        }
+      } catch (qpErr) {
+        console.error('QUICKPAY_GENERATE_ERROR:', qpErr);
+      }
+    }
 
     return res.json({
       success: true,
