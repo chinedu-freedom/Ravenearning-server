@@ -5,7 +5,7 @@ const router = Router();
 const prisma = new PrismaClient();
 
 // Get public settings (like contact links, etc)
-router.get('/', async (req, res) => {
+router.get(['/', '/public'], async (req, res) => {
   try {
     const settings = await prisma.settings.findFirst({
       select: {
