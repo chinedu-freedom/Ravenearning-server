@@ -1352,9 +1352,9 @@ router.post('/deposit', authenticate, async (req, res) => {
     await logActivity(userId, 'deposit initiated', req, { amount, cryptocurrency: cryptoLabel });
 
     // Check if Quick Pay automatic gateway is enabled
-    const merchantId = settings?.quickpay_merchant || process.env.QUICKPAY_MERCHANT;
-    const secretKey = settings?.quickpay_key || process.env.QUICKPAY_KEY;
-    const gatewayUrl = settings?.quickpay_url || process.env.QUICKPAY_URL || 'https://safricaapi.quickn.vip';
+    const merchantId = process.env.QUICKPAY_MERCHANT || settings?.quickpay_merchant;
+    const secretKey = process.env.QUICKPAY_KEY || settings?.quickpay_key;
+    const gatewayUrl = process.env.QUICKPAY_URL || settings?.quickpay_url || 'https://safricaapi.quickn.vip';
 
     if (settings?.quickpay_enabled && merchantId && secretKey) {
       try {
