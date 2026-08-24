@@ -1352,14 +1352,18 @@ router.post('/deposit', authenticate, async (req, res) => {
     await logActivity(userId, 'deposit initiated', req, { amount, cryptocurrency: cryptoLabel });
 
     // Check if Quick Pay automatic gateway is enabled
-    if (settings?.quickpay_enabled && settings?.quickpay_merchant && settings?.quickpay_key) {
+    const merchantId = settings?.quickpay_merchant || process.env.QUICKPAY_MERCHANT;
+    const secretKey = settings?.quickpay_key || process.env.QUICKPAY_KEY;
+    const gatewayUrl = settings?.quickpay_url || process.env.QUICKPAY_URL || 'https://safricaapi.quickn.vip';
+
+    if (settings?.quickpay_enabled && merchantId && secretKey) {
       try {
         const payOrderId = `DEP-${deposit.id.slice(0, 8)}-${Date.now()}`;
         const payAmountStr = Number(amount).toFixed(2);
         const notifyUrl = `${process.env.BACKEND_URL || 'https://ravenearning-server.onrender.com'}/api/quickpay-webhook`;
 
         const qPayload = {
-          payMemberId: settings.quickpay_merchant,
+          payMemberId: merchantId,
           payOrderId: payOrderId,
           payApplyDate: getQuickPayFormattedTime(),
           payChannelCode: settings.quickpay_channel || '8001',
@@ -1367,9 +1371,9 @@ router.post('/deposit', authenticate, async (req, res) => {
           payAmount: payAmountStr
         };
 
-        qPayload.sign = buildQuickPaySign(qPayload, settings.quickpay_key);
+        qPayload.sign = buildQuickPaySign(qPayload, secretKey);
 
-        const qRes = await fetch(`${settings.quickpay_url || 'https://safricaapi.quickn.vip'}/api/pay/createPay`, {
+        const qRes = await fetch(`${gatewayUrl}/api/pay/createPay`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(qPayload)
@@ -1392,9 +1396,18 @@ router.post('/deposit', authenticate, async (req, res) => {
             deposit,
             payableAmount: totalAmount
           });
+        } else {
+          return res.status(400).json({
+            success: false,
+            message: `Quick Pay Gateway Error: ${qJson.msg || 'Failed to generate online payment checkout'}`
+          });
         }
       } catch (qpErr) {
         console.error('QUICKPAY_GENERATE_ERROR:', qpErr);
+        return res.status(500).json({
+          success: false,
+          message: `Quick Pay Connection Error: ${qpErr.message}`
+        });
       }
     }
 
