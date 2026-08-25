@@ -958,9 +958,19 @@ router.get('/spin', authenticate, async (req, res) => {
     const userId = req.user.id;
 
     // Fetch settings and prizes
-    const settings = await prisma.spin_settings.findFirst();
-    if (!settings || !settings.feature_enabled) {
-      return res.status(403).json({ success: false, message: 'Spin wheel is currently disabled' });
+    let settings = await prisma.spin_settings.findFirst();
+    if (!settings) {
+      settings = await prisma.spin_settings.create({
+        data: {
+          cost_per_spin: 10,
+          daily_free_spins: 1,
+          feature_enabled: true
+        }
+      });
+    }
+
+    if (!settings.feature_enabled) {
+      return res.status(400).json({ success: false, message: 'Spin wheel is currently disabled' });
     }
 
     // Ensure "Oops Try Again" exists at position 9
@@ -1074,7 +1084,7 @@ router.post('/spin', authenticate, async (req, res) => {
     // Fetch settings and check if enabled
     const settings = await prisma.spin_settings.findFirst();
     if (!settings || !settings.feature_enabled) {
-      return res.status(403).json({ success: false, message: 'Spin wheel is currently disabled' });
+      return res.status(400).json({ success: false, message: 'Spin wheel is currently disabled' });
     }
 
     const user = await prisma.users.findUnique({
