@@ -65,6 +65,9 @@ router.get('/me', authenticate, async (req, res) => {
       }
     }
 
+    const totalWithdrawalAmount = Number(withdrawalsAggr._sum.amount || 0);
+    const netCumulativeIncome = Math.max(0, totalIncome - totalWithdrawalAmount);
+
     const teamMembersCount = await prisma.users.count({
       where: { referred_by: req.user.id }
     });
@@ -126,7 +129,7 @@ router.get('/me', authenticate, async (req, res) => {
         statistics: {
           total_deposit: depositsAggr._sum.amount || 0,
           total_withdrawal: withdrawalsAggr._sum.amount || 0,
-          total_income: totalIncome,
+          total_income: netCumulativeIncome,
           team_members: teamMembersCount
         }
       }
