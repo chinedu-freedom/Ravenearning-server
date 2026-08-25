@@ -1067,7 +1067,6 @@ router.get('/spin', authenticate, async (req, res) => {
         });
       }
     }
-    prizes.push(tryAgainPrize);
 
     // Ensure user_spins record exists
     let userSpins = await prisma.user_spins.findUnique({ where: { user_id: userId } });
@@ -1209,7 +1208,6 @@ router.post('/spin', authenticate, async (req, res) => {
         });
       }
     }
-    prizes.push(tryAgainPrize);
 
     if (prizes.length === 0) {
       return res.status(500).json({ success: false, message: 'No prizes configured' });
