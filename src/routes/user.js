@@ -1587,13 +1587,13 @@ router.get('/daily-checkin', authenticate, async (req, res) => {
 
     if (checkinConfig.length === 0) {
       const defaults = [
-        { day_number: 1, reward_amount: 5, description: 'Day 1 Check-in Reward' },
-        { day_number: 2, reward_amount: 10, description: 'Day 2 Check-in Reward' },
-        { day_number: 3, reward_amount: 15, description: 'Day 3 Check-in Reward' },
-        { day_number: 4, reward_amount: 20, description: 'Day 4 Check-in Reward' },
-        { day_number: 5, reward_amount: 25, description: 'Day 5 Check-in Reward' },
-        { day_number: 6, reward_amount: 30, description: 'Day 6 Check-in Reward' },
-        { day_number: 7, reward_amount: 50, description: 'Day 7 Check-in Reward' }
+        { day_number: 1, reward_amount: 1, description: 'Day 1 Check-in Reward' },
+        { day_number: 2, reward_amount: 2, description: 'Day 2 Check-in Reward' },
+        { day_number: 3, reward_amount: 3, description: 'Day 3 Check-in Reward' },
+        { day_number: 4, reward_amount: 4, description: 'Day 4 Check-in Reward' },
+        { day_number: 5, reward_amount: 5, description: 'Day 5 Check-in Reward' },
+        { day_number: 6, reward_amount: 6, description: 'Day 6 Check-in Reward' },
+        { day_number: 7, reward_amount: 7, description: 'Day 7 Check-in Reward' }
       ];
       for (const item of defaults) {
         await prisma.daily_checkins.create({ data: item });
