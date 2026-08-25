@@ -10,13 +10,16 @@ export const authenticate = (req, res, next) => {
 
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
       if (err) {
-        return res.status(403).json({ error: 'Invalid or expired token' });
+        return res.status(401).json({ error: 'Invalid or expired token', success: false });
       }
       req.user = decoded;
+      if (!req.user.id && req.user.userId) {
+        req.user.id = req.user.userId;
+      }
       next();
     });
   } else {
-    res.status(401).json({ error: 'Authorization header missing' });
+    res.status(401).json({ error: 'Authorization header missing', success: false });
   }
 };
 
