@@ -869,7 +869,7 @@ router.put('/me/payment', authenticate, async (req, res) => {
     }
 
     // If currentPassword provided, verify against login password or existing withdrawal_pin
-    if (currentPassword) {
+    if (currentPassword && currentPassword.trim().length > 0) {
       const isLoginValid = await bcrypt.compare(currentPassword, user.password);
       let isPinValid = false;
       if (user.withdrawal_pin) {
@@ -882,9 +882,12 @@ router.put('/me/payment', authenticate, async (req, res) => {
     }
 
     const salt = await bcrypt.genSalt(10);
-    const pinHash = await bcrypt.hash(newPassword, salt);
+    const pinHash = await bcrypt.hash(newPassword.trim(), salt);
 
-    await prisma.$executeRaw`UPDATE "users" SET "withdrawal_pin" = ${pinHash} WHERE "id" = ${req.user.id}::uuid`;
+    await prisma.users.update({
+      where: { id: req.user.id },
+      data: { withdrawal_pin: pinHash }
+    });
 
     res.json({ success: true, message: 'Withdrawal password updated successfully' });
   } catch (error) {
