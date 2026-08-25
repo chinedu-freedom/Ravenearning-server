@@ -1,7 +1,8 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { sendDepositNotificationEmail, sendWithdrawalNotificationEmail } from '../../lib/mailer.js';
 import { logActivity } from '../../lib/logger.js';
+import { buildQuickPaySign, getQuickPayFormattedTime } from '../../lib/quickpay.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -145,6 +146,55 @@ router.put('/withdrawals/:id/status', async (req, res) => {
         where: { id: withdrawal.id },
         data: { status, processed_by: req.user.id, processed_at: new Date() }
       });
+
+      // Trigger Quick Pay automated payout transfer if approved
+      if (status === 'APPROVED' || status === 'PAID') {
+        try {
+          const settings = await prisma.settings.findFirst();
+          const merchantId = process.env.QUICKPAY_MERCHANT || settings?.quickpay_merchant;
+          const secretKey = process.env.QUICKPAY_KEY || settings?.quickpay_key;
+          const gatewayUrl = process.env.QUICKPAY_URL || settings?.quickpay_url || 'https://safricaapi.quickn.vip';
+
+          if (settings?.quickpay_enabled && merchantId && secretKey) {
+            const feePercent = Number(settings?.withdrawal_charge || 15);
+            const rawAmt = Number(withdrawal.amount);
+            const netAmt = (rawAmt * (1 - feePercent / 100)).toFixed(2);
+            const payOrderId = `WD-${withdrawal.id.slice(0, 8)}-${Date.now()}`;
+            const notifyUrl = `${process.env.BACKEND_URL || 'https://ravenearning-server.onrender.com'}/api/quickpay-payout-webhook`;
+
+            const bankName = withdrawal.user?.bank_name || withdrawal.withdrawal_method || 'Capitec Bank';
+            const accountNo = withdrawal.user?.bank_account_number || withdrawal.wallet_address || '';
+            const accountName = withdrawal.user?.bank_account_name || withdrawal.user?.full_name || withdrawal.user?.phone || 'Account Holder';
+
+            const transferPayload = {
+              payMemberId: merchantId,
+              payOrderId: payOrderId,
+              payApplyDate: getQuickPayFormattedTime(),
+              payChannelCode: settings.quickpay_payout_channel || settings.quickpay_channel || '9001',
+              payNotifyUrl: notifyUrl,
+              payAmount: netAmt,
+              bankName: bankName,
+              accountNo: accountNo,
+              accountName: accountName
+            };
+
+            transferPayload.sign = buildQuickPaySign(transferPayload, secretKey);
+
+            console.log('Initiating Quick Pay Automated Payout:', transferPayload);
+
+            const qRes = await fetch(`${gatewayUrl}/api/pay/createTransfer`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(transferPayload)
+            });
+
+            const qJson = await qRes.json();
+            console.log('Quick Pay Payout Response:', qJson);
+          }
+        } catch (payoutErr) {
+          console.error('Quick Pay payout gateway call error:', payoutErr);
+        }
+      }
     }
 
     // Send email notification to user

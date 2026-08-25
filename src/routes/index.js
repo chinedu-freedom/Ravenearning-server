@@ -89,4 +89,40 @@ router.post('/quickpay-webhook', async (req, res) => {
   }
 });
 
+// Quick Pay Payout Callback Webhook
+router.post('/quickpay-payout-webhook', async (req, res) => {
+  try {
+    const payload = req.body || {};
+    console.log('Received Quick Pay Payout Webhook payload:', payload);
+
+    const payOrderId = payload.payOrderId || payload.orderId || payload.mchOrderNo;
+    const tradeState = payload.tradeState || payload.status || payload.state;
+
+    if (payOrderId && (tradeState === 'SUCCESS' || tradeState === '2' || tradeState === 'SUCCESSFUL')) {
+      const withdrawalIdPrefix = payOrderId.replace('WD-', '').split('-')[0];
+      const withdrawal = await prisma.withdrawals.findFirst({
+        where: {
+          OR: [
+            { id: { startsWith: withdrawalIdPrefix } },
+            { wallet_address: payOrderId }
+          ]
+        }
+      });
+
+      if (withdrawal && withdrawal.status !== 'APPROVED' && withdrawal.status !== 'COMPLETED') {
+        await prisma.withdrawals.update({
+          where: { id: withdrawal.id },
+          data: { status: 'APPROVED', processed_at: new Date() }
+        });
+        console.log(`QuickPay Payout ${withdrawal.id} successfully completed via webhook.`);
+      }
+    }
+
+    return res.status(200).send('OK');
+  } catch (err) {
+    console.error('QuickPay Payout Webhook Error:', err);
+    return res.status(200).send('OK');
+  }
+});
+
 export default router;
