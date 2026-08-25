@@ -243,61 +243,88 @@ router.get('/transactions', authenticate, async (req, res) => {
       orderBy: { created_at: 'desc' }
     });
 
-    const nonApprovedDeposits = await prisma.deposits.findMany({
-      where: { user_id: req.user.id, status: { not: 'approved' } },
-      orderBy: { created_at: 'desc' }
-    });
-
-    const nonApprovedWithdrawals = await prisma.withdrawals.findMany({
-      where: { user_id: req.user.id, status: { notIn: ['approved', 'processed', 'completed', 'success'] } },
-      orderBy: { created_at: 'desc' }
-    });
-
-    // Fetch user withdrawals to map reference_id to wallet_address for withdrawal transactions
     const userWithdrawals = await prisma.withdrawals.findMany({
+      where: { user_id: req.user.id }
+    });
+
+    const userDeposits = await prisma.deposits.findMany({
       where: { user_id: req.user.id }
     });
 
     const withdrawalMap = {};
     userWithdrawals.forEach(w => {
-      withdrawalMap[w.id] = w.wallet_address;
+      withdrawalMap[w.id] = w;
     });
 
+    const depositMap = {};
+    userDeposits.forEach(d => {
+      depositMap[d.id] = d;
+    });
+
+    const handledWithdrawalIds = new Set();
+    const handledDepositIds = new Set();
+
     const mappedTransactions = rawTransactions.map(t => {
-      const isWithdrawal = t.type === 'WITHDRAWAL';
+      const isWithdrawal = t.type === 'WITHDRAWAL' || (t.type || '').toLowerCase() === 'withdrawal';
+      const isDeposit = t.type === 'DEPOSIT' || (t.type || '').toLowerCase() === 'deposit';
+
+      let status = 'SUCCESS';
+      let walletAddress = t.wallet_address;
+
+      if (isWithdrawal && t.reference_id && withdrawalMap[t.reference_id]) {
+        const w = withdrawalMap[t.reference_id];
+        handledWithdrawalIds.add(w.id);
+        const wStatus = (w.status || '').toLowerCase();
+        if (wStatus === 'approved' || wStatus === 'completed' || wStatus === 'success' || wStatus === 'processed') {
+          status = 'SUCCESS';
+        } else if (wStatus === 'rejected' || wStatus === 'failed') {
+          status = 'FAILED';
+        } else {
+          status = 'PENDING';
+        }
+        walletAddress = w.wallet_address || walletAddress;
+      } else if (isDeposit && t.reference_id && depositMap[t.reference_id]) {
+        const d = depositMap[t.reference_id];
+        handledDepositIds.add(d.id);
+        const dStatus = (d.status || '').toLowerCase();
+        status = (dStatus === 'approved' || dStatus === 'success') ? 'SUCCESS' : (dStatus === 'rejected' || dStatus === 'failed' ? 'FAILED' : 'PENDING');
+      }
+
       return {
         ...t,
-        status: 'SUCCESS',
-        wallet_address: (isWithdrawal && t.reference_id) ? withdrawalMap[t.reference_id] : undefined
+        status,
+        wallet_address: walletAddress
       };
     });
 
-    const mappedDeposits = nonApprovedDeposits.map(d => ({
+    // Add any deposits that don't have a transaction row yet
+    const unhandledDeposits = userDeposits.filter(d => !handledDepositIds.has(d.id)).map(d => ({
       id: d.id,
       user_id: d.user_id,
-      type: 'deposit',
+      type: 'DEPOSIT',
       amount: d.amount,
       balance_before: 0,
       balance_after: d.amount,
       description: `Deposit via ${d.cryptocurrency || 'Crypto'}`,
-      status: d.status ? d.status.toUpperCase() : 'PENDING',
+      status: (d.status || '').toLowerCase() === 'approved' ? 'SUCCESS' : ((d.status || '').toLowerCase() === 'rejected' ? 'FAILED' : 'PENDING'),
       created_at: d.created_at
     }));
 
-    const mappedWithdrawals = nonApprovedWithdrawals.map(w => ({
+    // Add any withdrawals that don't have a transaction row yet
+    const unhandledWithdrawals = userWithdrawals.filter(w => !handledWithdrawalIds.has(w.id)).map(w => ({
       id: w.id,
       user_id: w.user_id,
-      type: 'withdrawal',
+      type: 'WITHDRAWAL',
       amount: w.amount,
       balance_before: w.amount,
       balance_after: 0,
-      description: `Withdrawal via ${w.withdrawal_method}`,
-      status: w.status ? w.status.toUpperCase() : 'PENDING',
+      description: `Withdrawal via ${w.withdrawal_method || 'Bank Transfer'}`,
+      status: (w.status || '').toLowerCase() === 'approved' || (w.status || '').toLowerCase() === 'success' ? 'SUCCESS' : ((w.status || '').toLowerCase() === 'rejected' ? 'FAILED' : 'PENDING'),
       created_at: w.created_at,
       wallet_address: w.wallet_address
     }));
 
-    const allTransactions = [...mappedTransactions, ...mappedDeposits, ...mappedWithdrawals];
+    const allTransactions = [...mappedTransactions, ...unhandledDeposits, ...unhandledWithdrawals];
     allTransactions.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     res.json({ success: true, transactions: allTransactions });
