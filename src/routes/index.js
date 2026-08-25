@@ -73,7 +73,7 @@ router.post('/quickpay-webhook', async (req, res) => {
               amount: approvedAmount,
               balance_before: balanceBefore,
               balance_after: balanceAfter,
-              description: `Quick Pay Online Deposit (${deposit.cryptocurrency || 'ZAR'})`
+              description: 'Deposit'
             }
           });
         });

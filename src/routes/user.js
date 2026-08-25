@@ -290,8 +290,16 @@ router.get('/transactions', authenticate, async (req, res) => {
         status = (dStatus === 'approved' || dStatus === 'success') ? 'SUCCESS' : (dStatus === 'rejected' || dStatus === 'failed' ? 'FAILED' : 'PENDING');
       }
 
+      let description = t.description;
+      if (isDeposit || (description && /quick pay|gateway|direct bank|official recharge/i.test(description))) {
+        description = 'Deposit';
+      } else if (isWithdrawal || (description && /withdraw/i.test(description))) {
+        description = 'Withdrawal';
+      }
+
       return {
         ...t,
+        description,
         status,
         wallet_address: walletAddress
       };
@@ -305,7 +313,7 @@ router.get('/transactions', authenticate, async (req, res) => {
       amount: d.amount,
       balance_before: 0,
       balance_after: d.amount,
-      description: `Deposit via ${d.cryptocurrency || 'Crypto'}`,
+      description: 'Deposit',
       status: (d.status || '').toLowerCase() === 'approved' ? 'SUCCESS' : ((d.status || '').toLowerCase() === 'rejected' ? 'FAILED' : 'PENDING'),
       created_at: d.created_at
     }));
@@ -318,7 +326,7 @@ router.get('/transactions', authenticate, async (req, res) => {
       amount: w.amount,
       balance_before: w.amount,
       balance_after: 0,
-      description: `Withdrawal via ${w.withdrawal_method || 'Bank Transfer'}`,
+      description: 'Withdrawal',
       status: (w.status || '').toLowerCase() === 'approved' || (w.status || '').toLowerCase() === 'success' ? 'SUCCESS' : ((w.status || '').toLowerCase() === 'rejected' ? 'FAILED' : 'PENDING'),
       created_at: w.created_at,
       wallet_address: w.wallet_address
@@ -1353,7 +1361,7 @@ router.post('/deposit', authenticate, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Valid amount is required' });
     }
 
-    let cryptoLabel = "Quick Pay Online Gateway";
+    let cryptoLabel = "Deposit";
     if (cryptoId) {
       const cryptoOption = await prisma.payout_cryptocurrencies.findUnique({
         where: { id: cryptoId }
