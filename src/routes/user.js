@@ -151,7 +151,7 @@ router.post('/bank-details', authenticate, async (req, res) => {
     }
 
     if (!password) {
-      return res.status(400).json({ success: false, message: 'Account login password is required to link bank account' });
+      return res.status(400).json({ success: false, message: 'Withdrawal password is required to link bank account' });
     }
 
     const user = await prisma.users.findUnique({ where: { id: userId } });
@@ -159,9 +159,16 @@ router.post('/bank-details', authenticate, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    let isPasswordValid = false;
+    if (user.withdrawal_pin) {
+      isPasswordValid = await bcrypt.compare(password, user.withdrawal_pin);
+    }
     if (!isPasswordValid) {
-      return res.status(400).json({ success: false, message: 'Incorrect login password' });
+      isPasswordValid = await bcrypt.compare(password, user.password);
+    }
+
+    if (!isPasswordValid) {
+      return res.status(400).json({ success: false, message: 'Incorrect withdrawal password' });
     }
 
     await prisma.users.update({
@@ -847,13 +854,31 @@ router.put('/me/password', authenticate, async (req, res) => {
   }
 });
 
-// Update Withdrawal Pin
+// Update Withdrawal Pin / Password
 router.put('/me/payment', authenticate, async (req, res) => {
   try {
-    const { newPassword } = req.body;
+    const { currentPassword, newPassword } = req.body;
 
     if (!newPassword || newPassword.length < 4) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 4 characters' });
+      return res.status(400).json({ success: false, message: 'Withdrawal password must be at least 4 characters' });
+    }
+
+    const user = await prisma.users.findUnique({ where: { id: req.user.id } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // If currentPassword provided, verify against login password or existing withdrawal_pin
+    if (currentPassword) {
+      const isLoginValid = await bcrypt.compare(currentPassword, user.password);
+      let isPinValid = false;
+      if (user.withdrawal_pin) {
+        isPinValid = await bcrypt.compare(currentPassword, user.withdrawal_pin);
+      }
+
+      if (!isLoginValid && !isPinValid) {
+        return res.status(400).json({ success: false, message: 'Incorrect current password' });
+      }
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -1525,20 +1550,21 @@ router.post('/withdraw', authenticate, async (req, res) => {
       });
     }
 
-    // Verify login password to confirm withdrawal
+    // Verify withdrawal password to confirm withdrawal
     if (!password) {
-      return res.status(400).json({ success: false, message: 'Account login password is required to confirm withdrawal' });
+      return res.status(400).json({ success: false, message: 'Withdrawal password is required to confirm withdrawal' });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    let isPasswordValid = false;
+    if (user.withdrawal_pin) {
+      isPasswordValid = await bcrypt.compare(password, user.withdrawal_pin);
+    }
     if (!isPasswordValid) {
-      let isPinValid = false;
-      if (user.withdrawal_pin) {
-        isPinValid = await bcrypt.compare(password, user.withdrawal_pin);
-      }
-      if (!isPinValid) {
-        return res.status(400).json({ success: false, message: 'Incorrect login password' });
-      }
+      isPasswordValid = await bcrypt.compare(password, user.password);
+    }
+
+    if (!isPasswordValid) {
+      return res.status(400).json({ success: false, message: 'Incorrect withdrawal password' });
     }
 
     const withdrawableBal = Number(user.withdrawable_balance || 0);
