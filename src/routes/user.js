@@ -186,11 +186,10 @@ router.get('/me/investments', authenticate, async (req, res) => {
 
     for (const inv of activeInvestments) {
       totalInvested += Number(inv.amount) || 0;
-      if (inv.plan && inv.plan.daily_income) {
-        // Calculate total expected returns based on the actual plan duration in days
-        const duration = Number(inv.plan.duration) || 30;
-        totalMonthlyEst += (Number(inv.amount) || 0) * (Number(inv.plan.daily_income) / 100) * duration;
-      }
+      const dailyInc = Number(inv.daily_profit) || 
+        (inv.plan ? (Number(inv.plan.daily_income) <= 1 ? Number(inv.amount) * Number(inv.plan.daily_income) : Number(inv.plan.daily_income)) : 0);
+      
+      totalMonthlyEst += dailyInc * 30;
     }
 
     res.json({
