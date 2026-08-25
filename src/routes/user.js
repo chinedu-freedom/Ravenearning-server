@@ -144,10 +144,24 @@ router.get('/me', authenticate, async (req, res) => {
 router.post('/bank-details', authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { account_name, bank_name, account_number } = req.body;
+    const { account_name, bank_name, account_number, password } = req.body;
 
     if (!account_name || !bank_name || !account_number) {
       return res.status(400).json({ success: false, message: 'All bank details are required' });
+    }
+
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Account login password is required to link bank account' });
+    }
+
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ success: false, message: 'Incorrect login password' });
     }
 
     await prisma.users.update({
@@ -1511,11 +1525,19 @@ router.post('/withdraw', authenticate, async (req, res) => {
       });
     }
 
-    // Verify withdrawal password if provided and user has withdrawal pin
-    if (password && user.withdrawal_pin) {
-      const isPasswordValid = await bcrypt.compare(password, user.withdrawal_pin);
-      if (!isPasswordValid) {
-        return res.status(400).json({ success: false, message: 'Incorrect withdrawal password' });
+    // Verify login password to confirm withdrawal
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Account login password is required to confirm withdrawal' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      let isPinValid = false;
+      if (user.withdrawal_pin) {
+        isPinValid = await bcrypt.compare(password, user.withdrawal_pin);
+      }
+      if (!isPinValid) {
+        return res.status(400).json({ success: false, message: 'Incorrect login password' });
       }
     }
 
