@@ -1565,10 +1565,8 @@ router.post('/withdraw', authenticate, async (req, res) => {
     }
 
     const withdrawableBal = Number(user.withdrawable_balance || 0);
-    const mainBal = Number(user.balance || 0);
-    const totalAvail = Math.max(withdrawableBal, mainBal);
 
-    if (totalAvail < Number(amount)) {
+    if (withdrawableBal < Number(amount)) {
       return res.status(400).json({ success: false, message: 'Insufficient withdrawable balance' });
     }
 
@@ -1582,22 +1580,13 @@ router.post('/withdraw', authenticate, async (req, res) => {
     await prisma.$transaction(async (tx) => {
       const numAmount = Number(amount);
 
-      // Deduct balance
-      if (withdrawableBal >= numAmount) {
-        await tx.users.update({
-          where: { id: userId },
-          data: {
-            withdrawable_balance: { decrement: numAmount }
-          }
-        });
-      } else {
-        await tx.users.update({
-          where: { id: userId },
-          data: {
-            balance: { decrement: numAmount }
-          }
-        });
-      }
+      // Deduct exclusively from withdrawable balance
+      await tx.users.update({
+        where: { id: userId },
+        data: {
+          withdrawable_balance: { decrement: numAmount }
+        }
+      });
 
       // Create withdrawal record
       withdrawalResult = await tx.withdrawals.create({
