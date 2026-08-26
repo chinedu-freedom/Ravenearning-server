@@ -13,6 +13,17 @@ import { logActivity } from '../lib/logger.js';
 const router = Router();
 const prisma = new PrismaClient();
 
+const safeBcryptCompare = async (password, hash) => {
+  if (!password || !hash || typeof password !== 'string' || typeof hash !== 'string') {
+    return false;
+  }
+  try {
+    return await bcrypt.compare(password, hash);
+  } catch (err) {
+    return false;
+  }
+};
+
 router.get('/', async (req, res) => {
   try {
     const users = await prisma.users.findMany({
@@ -161,10 +172,10 @@ router.post('/bank-details', authenticate, async (req, res) => {
 
     let isPasswordValid = false;
     if (user.withdrawal_pin) {
-      isPasswordValid = await bcrypt.compare(password, user.withdrawal_pin);
+      isPasswordValid = await safeBcryptCompare(password, user.withdrawal_pin);
     }
-    if (!isPasswordValid) {
-      isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid && user.password) {
+      isPasswordValid = await safeBcryptCompare(password, user.password);
     }
 
     if (!isPasswordValid) {
@@ -870,10 +881,10 @@ router.put('/me/payment', authenticate, async (req, res) => {
 
     // If currentPassword provided, verify against login password or existing withdrawal_pin
     if (currentPassword && currentPassword.trim().length > 0) {
-      const isLoginValid = await bcrypt.compare(currentPassword, user.password);
+      const isLoginValid = user.password ? await safeBcryptCompare(currentPassword, user.password) : false;
       let isPinValid = false;
       if (user.withdrawal_pin) {
-        isPinValid = await bcrypt.compare(currentPassword, user.withdrawal_pin);
+        isPinValid = await safeBcryptCompare(currentPassword, user.withdrawal_pin);
       }
 
       if (!isLoginValid && !isPinValid) {
@@ -1560,10 +1571,10 @@ router.post('/withdraw', authenticate, async (req, res) => {
 
     let isPasswordValid = false;
     if (user.withdrawal_pin) {
-      isPasswordValid = await bcrypt.compare(password, user.withdrawal_pin);
+      isPasswordValid = await safeBcryptCompare(password, user.withdrawal_pin);
     }
-    if (!isPasswordValid) {
-      isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid && user.password) {
+      isPasswordValid = await safeBcryptCompare(password, user.password);
     }
 
     if (!isPasswordValid) {

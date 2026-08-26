@@ -182,14 +182,28 @@ router.put('/withdrawals/:id/status', async (req, res) => {
 
             console.log('Initiating Quick Pay Automated Payout:', transferPayload);
 
-            const qRes = await fetch(`${gatewayUrl}/api/pay/createTransfer`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(transferPayload)
-            });
+            // Try standard Quick Pay endpoint paths (/pay/createTransfer, then /api/pay/createTransfer)
+            const cleanGatewayUrl = gatewayUrl.replace(/\/+$/, '');
+            const endpointPaths = ['/pay/createTransfer', '/api/pay/createTransfer', '/pay/transfer'];
 
-            const qJson = await qRes.json();
-            console.log('Quick Pay Payout Response:', qJson);
+            let qRes, qJson;
+            for (const ep of endpointPaths) {
+              const fullUrl = `${cleanGatewayUrl}${ep}`;
+              try {
+                qRes = await fetch(fullUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(transferPayload)
+                });
+                qJson = await qRes.json();
+                if (qRes.status !== 404) {
+                  console.log(`Quick Pay Payout Response (${ep}):`, qJson);
+                  break;
+                }
+              } catch (e) {
+                console.error(`Quick Pay endpoint ${ep} error:`, e.message);
+              }
+            }
           }
         } catch (payoutErr) {
           console.error('Quick Pay payout gateway call error:', payoutErr);
