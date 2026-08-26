@@ -211,10 +211,26 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
 
                 bankName: bankName,
                 bank_name: bankName,
+                bankCode: bankName,
+                bank_code: bankName,
+
                 accountNo: accountNo,
                 account_no: accountNo,
+                accNo: accountNo,
+                acc_no: accountNo,
+                cardNo: accountNo,
+                card_no: accountNo,
+                bankCardNo: accountNo,
+
                 accountName: accountName,
-                account_name: accountName
+                account_name: accountName,
+                accName: accountName,
+                acc_name: accountName,
+                userName: accountName,
+                user_name: accountName,
+                realName: accountName,
+                real_name: accountName,
+                bankAccountName: accountName
               },
               // Variant 2: Standard payMemberId format
               {
