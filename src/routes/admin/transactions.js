@@ -192,7 +192,7 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                                 'Account Holder';
 
             const payloadVariants = [
-              // Variant 1: QuickN mchId + account_name + acc_name + userName
+              // Variant 1: Pure 8-Field QuickN Payout Schema (Exact MD5 signature match)
               {
                 mchId: merchantId,
                 mchOrderNo: payOrderId,
@@ -200,23 +200,10 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                 channelId: settings?.quickpay_payout_channel || '8002',
                 notifyUrl: notifyUrl,
                 bankCardNo: accountNo,
-                cardNo: accountNo,
-                accountNo: accountNo,
-                account_no: accountNo,
                 accName: accountName,
-                acc_name: accountName,
-                accountName: accountName,
-                account_name: accountName,
-                userName: accountName,
-                user_name: accountName,
-                bank_account_name: accountName,
-                bankName: bankName,
-                bank_name: bankName,
-                bankCode: bankName,
-                bank_code: bankName,
-                pay_bankcode: bankName
+                bankName: bankName
               },
-              // Variant 2: Standard payMemberId format
+              // Variant 2: Pure 8-Field QuickPay Standard Schema
               {
                 payMemberId: merchantId,
                 payOrderId: payOrderId,
@@ -224,12 +211,20 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                 payChannelCode: settings?.quickpay_payout_channel || '8002',
                 payNotifyUrl: notifyUrl,
                 payApplyDate: getQuickPayFormattedTime(),
-                bankCardNo: accountNo,
                 accountNo: accountNo,
                 accountName: accountName,
-                accName: accountName,
-                bankName: bankName,
-                bank_name: bankName
+                bankName: bankName
+              },
+              // Variant 3: Pure 8-Field QuickN accountName Schema
+              {
+                mchId: merchantId,
+                mchOrderNo: payOrderId,
+                amount: netAmt,
+                channelId: settings?.quickpay_payout_channel || '8002',
+                notifyUrl: notifyUrl,
+                accountNo: accountNo,
+                accountName: accountName,
+                bankName: bankName
               }
             ];
 
