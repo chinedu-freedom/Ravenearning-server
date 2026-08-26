@@ -177,9 +177,19 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
             const payOrderId = `WD-${withdrawal.id.slice(0, 8)}-${Date.now()}`;
             const notifyUrl = `${process.env.BACKEND_URL || 'https://ravenearning-server.onrender.com'}/api/quickpay-payout-webhook`;
 
-            const bankName = withdrawal.user?.bank_name || withdrawal.withdrawal_method || 'Capitec Bank';
-            const accountNo = withdrawal.wallet_address || withdrawal.user?.bank_account_number || withdrawal.user?.phone || '8158051119';
-            const accountName = withdrawal.user?.bank_account_name || withdrawal.user?.full_name || withdrawal.user?.phone || 'Account Holder';
+            const bankName = (withdrawal.user?.bank_name && String(withdrawal.user.bank_name).trim()) ||
+                             (withdrawal.withdrawal_method && String(withdrawal.withdrawal_method).trim()) ||
+                             'Capitec Bank';
+
+            const accountNo = (withdrawal.wallet_address && String(withdrawal.wallet_address).trim()) ||
+                              (withdrawal.user?.bank_account_number && String(withdrawal.user.bank_account_number).trim()) ||
+                              (withdrawal.user?.phone && String(withdrawal.user.phone).trim()) ||
+                              '8158051119';
+
+            const accountName = (withdrawal.user?.bank_account_name && String(withdrawal.user.bank_account_name).trim()) ||
+                                (withdrawal.user?.full_name && String(withdrawal.user.full_name).trim()) ||
+                                (withdrawal.user?.phone && String(withdrawal.user.phone).trim()) ||
+                                'Account Holder';
 
             const payloadVariants = [
               // Variant 1: QuickN mchId + account_name + acc_name + userName
@@ -203,7 +213,8 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                 bankName: bankName,
                 bank_name: bankName,
                 bankCode: bankName,
-                bank_code: bankName
+                bank_code: bankName,
+                pay_bankcode: bankName
               },
               // Variant 2: Standard payMemberId format
               {
