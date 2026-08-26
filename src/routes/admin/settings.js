@@ -124,10 +124,30 @@ router.get('/platform', async (req, res) => {
 router.put('/platform', async (req, res) => {
   try {
     let settings = await prisma.settings.findFirst();
+
+    const allowedKeys = [
+      'platform_logo', 'site_name', 'site_title', 'currency_name', 'currency_symbol', 'timezone',
+      'registration_bonus', 'welcome_bonus_destination', 'telegram_support', 'whatsapp_support',
+      'telegram_community', 'telegram_group', 'whatsapp_group', 'deposit_notice', 'withdrawal_notice',
+      'deposit_bonus', 'min_deposit', 'max_deposit', 'deposit_charge', 'quickpay_enabled',
+      'quickpay_merchant', 'quickpay_key', 'quickpay_url', 'quickpay_channel', 'quickpay_payout_channel',
+      'daily_withdrawal_limit', 'withdrawal_open_time', 'withdrawal_close_time', 'auto_withdrawal',
+      'min_withdrawal', 'max_withdrawal', 'withdrawal_charge', 'level1_commission', 'level2_commission',
+      'level3_commission', 'level4_commission', 'live_market_enabled', 'daily_checkin_enabled',
+      'require_investment_to_withdraw', 'min_investment_to_withdraw'
+    ];
+
+    const cleanData = {};
+    for (const key of allowedKeys) {
+      if (req.body[key] !== undefined) {
+        cleanData[key] = req.body[key];
+      }
+    }
+
     if (settings) {
-      settings = await prisma.settings.update({ where: { id: settings.id }, data: req.body });
+      settings = await prisma.settings.update({ where: { id: settings.id }, data: cleanData });
     } else {
-      settings = await prisma.settings.create({ data: req.body });
+      settings = await prisma.settings.create({ data: cleanData });
     }
     res.json(settings);
   } catch (error) {
