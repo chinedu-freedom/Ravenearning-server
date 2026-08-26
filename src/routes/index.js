@@ -23,8 +23,8 @@ router.get('/news', (req, res) => res.json({ success: true, data: [] }));
 router.get('/live-market', (req, res) => res.json({ success: true, data: [] }));
 router.get('/team-members', (req, res) => res.json({ success: true, data: [] }));
 
-// Quick Pay Gateway Webhook Callback Handler
-router.post('/quickpay-webhook', async (req, res) => {
+// Quick Pay Gateway Webhook Callback Handler (Deposit)
+const handleDepositWebhook = async (req, res) => {
   try {
     const payload = req.body || {};
     console.log('QuickPay Webhook Payload Received:', JSON.stringify(payload));
@@ -87,18 +87,18 @@ router.post('/quickpay-webhook', async (req, res) => {
     console.error('QuickPay Webhook Error:', err);
     return res.status(200).send('OK');
   }
-});
+};
 
 // Quick Pay Payout Callback Webhook
-router.post('/quickpay-payout-webhook', async (req, res) => {
+const handlePayoutWebhook = async (req, res) => {
   try {
     const payload = req.body || {};
     console.log('Received Quick Pay Payout Webhook payload:', payload);
 
-    const payOrderId = payload.payOrderId || payload.orderId || payload.mchOrderNo;
+    const payOrderId = payload.payOrderId || payload.orderId || payload.mchOrderNo || payload.drawOrderId || payload.out_trade_no;
     const tradeState = payload.tradeState || payload.status || payload.state;
 
-    if (payOrderId && (tradeState === 'SUCCESS' || tradeState === '2' || tradeState === 'SUCCESSFUL')) {
+    if (payOrderId && (tradeState === 'SUCCESS' || tradeState === '2' || tradeState === 'SUCCESSFUL' || tradeState === 'success')) {
       const withdrawalIdPrefix = payOrderId.replace('WD-', '').split('-')[0];
       const withdrawal = await prisma.withdrawals.findFirst({
         where: {
@@ -123,6 +123,13 @@ router.post('/quickpay-payout-webhook', async (req, res) => {
     console.error('QuickPay Payout Webhook Error:', err);
     return res.status(200).send('OK');
   }
-});
+};
+
+// Bind Webhook URLs and Aliases
+router.post('/quickpay-webhook', handleDepositWebhook);
+router.post('/quickpay-payout-webhook', handlePayoutWebhook);
+router.all('/order/cashnotify/*', handleDepositWebhook);
+router.all('/pay/notify', handleDepositWebhook);
+router.all('/pay/payout-notify', handlePayoutWebhook);
 
 export default router;
