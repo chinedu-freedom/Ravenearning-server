@@ -207,10 +207,12 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
             ];
 
             let payoutSuccess = false;
-            let gatewayErrMsg = null;
+            let lastQJson = null;
 
             for (const ep of endpointPaths) {
               const fullUrl = `${cleanGatewayUrl}${ep}`;
+
+              // Try JSON
               try {
                 const qRes = await fetch(fullUrl, {
                   method: 'POST',
@@ -218,29 +220,53 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                   body: JSON.stringify(transferPayload)
                 });
                 const qJson = await qRes.json();
-                console.log(`Quick Pay Payout Response (${ep}):`, qJson);
+                console.log(`Quick Pay Payout Response JSON (${ep}):`, qJson);
 
                 if (qJson && (qJson.code === 200 || qJson.code === 0 || qJson.code === '0' || qJson.code === '200' || qJson.success === true)) {
-                  console.log(`Quick Pay Payout SUCCESS via endpoint ${ep}!`);
+                  console.log(`Quick Pay Payout SUCCESS via ${ep} (JSON)!`);
                   payoutSuccess = true;
                   break;
                 } else {
-                  const msg = qJson?.msg || qJson?.message || '';
-                  if (msg.includes('余额') || msg.toLowerCase().includes('balance')) {
-                    gatewayErrMsg = 'Insufficient merchant payout balance on Quick Pay!';
-                  } else if (msg.includes('认证失败') || msg.includes('401') || qJson?.code === 401) {
-                    gatewayErrMsg = `Quick Pay Auth Failed: Add VPS IP (169.58.213.123) to Quick Pay IP Whitelist!`;
-                  } else if (msg) {
-                    gatewayErrMsg = `Quick Pay Payout Error: ${msg}`;
-                  }
+                  lastQJson = qJson;
                 }
               } catch (e) {
-                console.error(`Quick Pay endpoint ${ep} error:`, e.message);
+                console.error(`Quick Pay endpoint ${ep} JSON error:`, e.message);
+              }
+
+              // Try x-www-form-urlencoded
+              try {
+                const formParams = new URLSearchParams(transferPayload).toString();
+                const qRes = await fetch(fullUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                  body: formParams
+                });
+                const qJson = await qRes.json();
+                console.log(`Quick Pay Payout Response Form (${ep}):`, qJson);
+
+                if (qJson && (qJson.code === 200 || qJson.code === 0 || qJson.code === '0' || qJson.code === '200' || qJson.success === true)) {
+                  console.log(`Quick Pay Payout SUCCESS via ${ep} (Form)!`);
+                  payoutSuccess = true;
+                  break;
+                } else {
+                  lastQJson = qJson;
+                }
+              } catch (e) {
+                console.error(`Quick Pay endpoint ${ep} Form error:`, e.message);
               }
             }
 
-            if (!payoutSuccess && gatewayErrMsg) {
-              // Rollback status to PENDING so admin can retry after fixing balance/IP
+            if (!payoutSuccess) {
+              const msg = lastQJson?.msg || lastQJson?.message || 'Gateway payout failed';
+              let friendlyMsg = `Quick Pay Response: ${msg}`;
+
+              if (msg.includes('余额') || msg.toLowerCase().includes('balance')) {
+                friendlyMsg = 'Insufficient merchant payout balance on Quick Pay!';
+              } else if (msg.includes('认证失败') || msg.includes('401') || lastQJson?.code === 401) {
+                friendlyMsg = `Quick Pay Auth Error (401): ${msg} - Check Payout permissions for Merchant ${merchantId}`;
+              }
+
+              // Rollback status to PENDING so admin can retry after fixing gateway settings
               await prisma.withdrawals.update({
                 where: { id: withdrawal.id },
                 data: { status: 'PENDING' }
@@ -248,8 +274,8 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
 
               return res.status(400).json({
                 success: false,
-                error: gatewayErrMsg,
-                message: gatewayErrMsg
+                error: friendlyMsg,
+                message: friendlyMsg
               });
             }
           }
