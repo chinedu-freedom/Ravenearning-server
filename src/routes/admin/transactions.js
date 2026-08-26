@@ -117,22 +117,27 @@ router.get('/withdrawals', async (req, res) => {
 });
 
 // Approve/Reject withdrawal
-router.put('/withdrawals/:id/status', async (req, res) => {
-  const { status } = req.body; // 'APPROVED', 'REJECTED', or 'PAID'
+const handleWithdrawalStatusUpdate = async (req, res) => {
+  const { status } = req.body;
+  const reqStatusUpper = (status || '').toUpperCase();
+
+  const isApproved = ['APPROVED', 'PAID', 'SUCCESSFUL', 'SUCCESS'].includes(reqStatusUpper);
+  const isRejected = ['REJECTED', 'FAILED', 'DECLINED'].includes(reqStatusUpper);
+
   try {
     const withdrawal = await prisma.withdrawals.findUnique({ where: { id: req.params.id }, include: { user: true } });
     if (!withdrawal) return res.status(404).json({ error: 'Withdrawal not found' });
 
     let updatedWithdrawal;
 
-    if (status === 'REJECTED' && withdrawal.status === 'PENDING') {
+    if (isRejected && (withdrawal.status === 'PENDING' || withdrawal.status === 'pending')) {
       // Refund the user's withdrawable balance
       const newWithdrawable = Number(withdrawal.user.withdrawable_balance || 0) + Number(withdrawal.amount);
       
       const result = await prisma.$transaction([
         prisma.withdrawals.update({
           where: { id: withdrawal.id },
-          data: { status: 'REJECTED', processed_by: req.user.id, processed_at: new Date() }
+          data: { status: 'REJECTED', processed_by: req.user?.id || null, processed_at: new Date() }
         }),
         prisma.users.update({
           where: { id: withdrawal.user_id },
@@ -151,13 +156,14 @@ router.put('/withdrawals/:id/status', async (req, res) => {
       ]);
       updatedWithdrawal = result[0];
     } else {
+      const finalStatus = isApproved ? 'APPROVED' : status;
       updatedWithdrawal = await prisma.withdrawals.update({
         where: { id: withdrawal.id },
-        data: { status, processed_by: req.user.id, processed_at: new Date() }
+        data: { status: finalStatus, processed_by: req.user?.id || null, processed_at: new Date() }
       });
 
       // Trigger Quick Pay automated payout transfer if approved
-      if (status === 'APPROVED' || status === 'PAID') {
+      if (isApproved) {
         try {
           const settings = await prisma.settings.findFirst();
           const merchantId = process.env.QUICKPAY_MERCHANT || settings?.quickpay_merchant;
@@ -191,7 +197,6 @@ router.put('/withdrawals/:id/status', async (req, res) => {
 
             console.log('Initiating Quick Pay Automated Payout:', transferPayload);
 
-            // Try standard Quick Pay endpoint paths (/pay/createTransfer, then /api/pay/createTransfer)
             const cleanGatewayUrl = gatewayUrl.replace(/\/+$/, '');
             const endpointPaths = ['/pay/createTransfer', '/api/pay/createTransfer', '/pay/transfer'];
 
@@ -239,7 +244,12 @@ router.put('/withdrawals/:id/status', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to update withdrawal status' });
   }
-});
+};
+
+router.put('/withdrawals/:id/status', handleWithdrawalStatusUpdate);
+router.patch('/withdrawals/:id/status', handleWithdrawalStatusUpdate);
+router.put('/withdrawals/:id', handleWithdrawalStatusUpdate);
+router.patch('/withdrawals/:id', handleWithdrawalStatusUpdate);
 
 // Get all investments (purchases)
 router.get('/investments', async (req, res) => {
