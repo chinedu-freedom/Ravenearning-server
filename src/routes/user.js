@@ -1609,8 +1609,8 @@ router.post('/withdraw', authenticate, async (req, res) => {
           user_id: userId,
           type: 'WITHDRAWAL',
           amount: numAmount,
-          balance_before: totalAvail,
-          balance_after: totalAvail - numAmount,
+          balance_before: withdrawableBal,
+          balance_after: withdrawableBal - numAmount,
           reference_id: withdrawalResult.id,
           description: `Withdrawal request to ${destAddress}`
         }
@@ -1641,7 +1641,7 @@ router.post('/withdraw', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Withdrawal error:', error);
-    res.status(500).json({ success: false, message: 'Failed to process withdrawal request' });
+    res.status(500).json({ success: false, message: error.message || 'Failed to process withdrawal request' });
   }
 });
 
