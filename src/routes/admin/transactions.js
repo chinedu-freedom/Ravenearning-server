@@ -182,7 +182,21 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
             const accountName = withdrawal.user?.bank_account_name || withdrawal.user?.full_name || withdrawal.user?.phone || 'Account Holder';
 
             const payloadVariants = [
-              // Variant 1: Pure QuickPay Standard
+              // Variant 1: Winning QuickN Payout Schema (mchId + mchOrderNo + amount + channelId + notifyUrl + bankCardNo + accName + bankName)
+              {
+                mchId: merchantId,
+                mchOrderNo: payOrderId,
+                amount: netAmt,
+                channelId: settings?.quickpay_payout_channel || '8002',
+                notifyUrl: notifyUrl,
+                bankCardNo: accountNo,
+                cardNo: accountNo,
+                accountNo: accountNo,
+                accName: accountName,
+                accountName: accountName,
+                bankName: bankName
+              },
+              // Variant 2: Standard payMemberId format
               {
                 payMemberId: merchantId,
                 payOrderId: payOrderId,
@@ -190,39 +204,7 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                 payChannelCode: settings?.quickpay_payout_channel || '8002',
                 payNotifyUrl: notifyUrl,
                 payApplyDate: getQuickPayFormattedTime(),
-                accountNo: accountNo,
-                accountName: accountName,
-                bankName: bankName
-              },
-              // Variant 2: Pure QuickN Standard
-              {
-                mchId: merchantId,
-                mchOrderNo: payOrderId,
-                amount: netAmt,
-                channelId: settings?.quickpay_payout_channel || '8002',
-                notifyUrl: notifyUrl,
-                accountNo: accountNo,
-                accountName: accountName,
-                bankName: bankName
-              },
-              // Variant 3: Pure QuickN accName
-              {
-                mchId: merchantId,
-                mchOrderNo: payOrderId,
-                amount: netAmt,
-                channelId: settings?.quickpay_payout_channel || '8002',
-                notifyUrl: notifyUrl,
-                accountNo: accountNo,
-                accName: accountName,
-                bankName: bankName
-              },
-              // Variant 4: Pure QuickN payNotifyUrl
-              {
-                mchId: merchantId,
-                mchOrderNo: payOrderId,
-                amount: netAmt,
-                channelId: settings?.quickpay_payout_channel || '8002',
-                payNotifyUrl: notifyUrl,
+                bankCardNo: accountNo,
                 accountNo: accountNo,
                 accountName: accountName,
                 bankName: bankName
