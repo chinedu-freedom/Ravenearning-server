@@ -1,9 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import dns from 'dns';
 import apiRoutes from './routes/index.js';
 import { initCron } from './cron.js';
 import { runSeed } from './seed.js';
+
+// Force Node.js to use IPv4 first for outgoing API requests
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 dotenv.config();
 
