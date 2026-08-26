@@ -178,7 +178,7 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
             const notifyUrl = `${process.env.BACKEND_URL || 'https://ravenearning-server.onrender.com'}/api/quickpay-payout-webhook`;
 
             const bankName = withdrawal.user?.bank_name || withdrawal.withdrawal_method || 'Capitec Bank';
-            const accountNo = withdrawal.user?.bank_account_number || withdrawal.wallet_address || '';
+            const accountNo = withdrawal.wallet_address || withdrawal.user?.bank_account_number || withdrawal.user?.phone || '8158051119';
             const accountName = withdrawal.user?.bank_account_name || withdrawal.user?.full_name || withdrawal.user?.phone || 'Account Holder';
 
             const payloadVariants = [
