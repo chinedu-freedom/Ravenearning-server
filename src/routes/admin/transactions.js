@@ -206,7 +206,9 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
               '/pay/transfer'
             ];
 
-            let qRes, qJson;
+            let payoutSuccess = false;
+            let gatewayErrMsg = null;
+
             for (const ep of endpointPaths) {
               const fullUrl = `${cleanGatewayUrl}${ep}`;
               try {
@@ -217,13 +219,38 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                 });
                 qJson = await qRes.json();
                 console.log(`Quick Pay Payout Response (${ep}):`, qJson);
+
                 if (qJson && (qJson.code === 200 || qJson.code === 0 || qJson.code === '0' || qJson.code === '200' || qJson.success === true)) {
                   console.log(`Quick Pay Payout SUCCESS via endpoint ${ep}!`);
+                  payoutSuccess = true;
                   break;
+                } else {
+                  const msg = qJson?.msg || qJson?.message || '';
+                  if (msg.includes('余额') || msg.toLowerCase().includes('balance')) {
+                    gatewayErrMsg = 'Insufficient merchant payout balance on Quick Pay!';
+                  } else if (msg.includes('认证失败') || msg.includes('401') || qJson?.code === 401) {
+                    gatewayErrMsg = `Quick Pay Auth Failed: Add VPS IP (102.90.101.164) to Quick Pay IP Whitelist!`;
+                  } else if (msg) {
+                    gatewayErrMsg = `Quick Pay Payout Error: ${msg}`;
+                  }
                 }
               } catch (e) {
                 console.error(`Quick Pay endpoint ${ep} error:`, e.message);
               }
+            }
+
+            if (!payoutSuccess && gatewayErrMsg) {
+              // Rollback status to PENDING so admin can retry after fixing balance/IP
+              await prisma.withdrawals.update({
+                where: { id: withdrawal.id },
+                data: { status: 'PENDING' }
+              });
+
+              return res.status(400).json({
+                success: false,
+                error: gatewayErrMsg,
+                message: gatewayErrMsg
+              });
             }
           }
         } catch (payoutErr) {
