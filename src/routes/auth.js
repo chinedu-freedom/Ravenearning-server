@@ -275,6 +275,9 @@ router.post('/admin/login', async (req, res) => {
     }
 
     const { keepMeLoggedIn } = req.body;
+    const expiresIn = keepMeLoggedIn ? '24h' : '1h';
+    const token = jwt.sign({ id: admin.id, role: 'admin' }, JWT_SECRET, { expiresIn });
+
     res.json({
       message: 'Admin login successful',
       token,
