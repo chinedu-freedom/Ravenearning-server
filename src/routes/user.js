@@ -868,28 +868,10 @@ router.put('/me/password', authenticate, async (req, res) => {
 // Update Withdrawal Pin / Password
 router.put('/me/payment', authenticate, async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const { newPassword } = req.body;
 
-    if (!newPassword || newPassword.length < 4) {
+    if (!newPassword || newPassword.trim().length < 4) {
       return res.status(400).json({ success: false, message: 'Withdrawal password must be at least 4 characters' });
-    }
-
-    const user = await prisma.users.findUnique({ where: { id: req.user.id } });
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    // If currentPassword provided, verify against login password or existing withdrawal_pin
-    if (currentPassword && currentPassword.trim().length > 0) {
-      const isLoginValid = user.password ? await safeBcryptCompare(currentPassword, user.password) : false;
-      let isPinValid = false;
-      if (user.withdrawal_pin) {
-        isPinValid = await safeBcryptCompare(currentPassword, user.withdrawal_pin);
-      }
-
-      if (!isLoginValid && !isPinValid) {
-        return res.status(400).json({ success: false, message: 'Incorrect current password' });
-      }
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -900,10 +882,10 @@ router.put('/me/payment', authenticate, async (req, res) => {
       data: { withdrawal_pin: pinHash }
     });
 
-    res.json({ success: true, message: 'Withdrawal password updated successfully' });
+    res.json({ success: true, message: 'Withdrawal password saved successfully' });
   } catch (error) {
     console.error('Set withdrawal pin error:', error);
-    res.status(500).json({ success: false, message: 'Failed to update withdrawal password' });
+    res.status(500).json({ success: false, message: 'Failed to save withdrawal password' });
   }
 });
 
