@@ -140,7 +140,7 @@ router.post('/:id/credit', async (req, res) => {
           amount: amount,
           balance_before: currentBalance,
           balance_after: newBalance,
-          description: reason || 'Manual credit by admin'
+          description: reason || 'Deposit'
         }
       })
     ]);
@@ -193,7 +193,7 @@ router.post('/:id/debit', async (req, res) => {
           amount: amount,
           balance_before: currentBalance,
           balance_after: newBalance,
-          description: reason || 'Manual debit by admin'
+          description: reason || 'Withdrawal'
         }
       })
     ]);
