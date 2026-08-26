@@ -198,7 +198,13 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
             console.log('Initiating Quick Pay Automated Payout:', transferPayload);
 
             const cleanGatewayUrl = gatewayUrl.replace(/\/+$/, '');
-            const endpointPaths = ['/pay/createTransfer', '/api/pay/createTransfer', '/pay/transfer'];
+            const endpointPaths = [
+              '/api/pay/createTransfer',
+              '/api/pay/transfer',
+              '/api/pay/createPayout',
+              '/pay/createTransfer',
+              '/pay/transfer'
+            ];
 
             let qRes, qJson;
             for (const ep of endpointPaths) {
@@ -210,8 +216,9 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                   body: JSON.stringify(transferPayload)
                 });
                 qJson = await qRes.json();
-                if (qRes.status !== 404) {
-                  console.log(`Quick Pay Payout Response (${ep}):`, qJson);
+                console.log(`Quick Pay Payout Response (${ep}):`, qJson);
+                if (qJson && (qJson.code === 200 || qJson.code === 0 || qJson.code === '0' || qJson.code === '200' || qJson.success === true)) {
+                  console.log(`Quick Pay Payout SUCCESS via endpoint ${ep}!`);
                   break;
                 }
               } catch (e) {
