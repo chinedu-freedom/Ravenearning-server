@@ -182,7 +182,7 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
             const accountName = withdrawal.user?.bank_account_name || withdrawal.user?.full_name || withdrawal.user?.phone || 'Account Holder';
 
             const payloadVariants = [
-              // Variant 1: Winning QuickN Payout Schema (mchId + mchOrderNo + amount + channelId + notifyUrl + bankCardNo + accName + bankName)
+              // Variant 1: QuickN mchId + bank_name + bankName + bankCode
               {
                 mchId: merchantId,
                 mchOrderNo: payOrderId,
@@ -194,7 +194,10 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                 accountNo: accountNo,
                 accName: accountName,
                 accountName: accountName,
-                bankName: bankName
+                bankName: bankName,
+                bank_name: bankName,
+                bankCode: bankName,
+                bank_code: bankName
               },
               // Variant 2: Standard payMemberId format
               {
@@ -207,7 +210,9 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                 bankCardNo: accountNo,
                 accountNo: accountNo,
                 accountName: accountName,
-                bankName: bankName
+                accName: accountName,
+                bankName: bankName,
+                bank_name: bankName
               }
             ];
 
