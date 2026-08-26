@@ -192,7 +192,7 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                                 'Account Holder';
 
             const payloadVariants = [
-              // Variant 1: Pure 8-Field QuickN Payout Schema (Exact MD5 signature match)
+              // Variant 1: QuickN Payout Schema with bank_name
               {
                 mchId: merchantId,
                 mchOrderNo: payOrderId,
@@ -201,30 +201,30 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                 notifyUrl: notifyUrl,
                 bankCardNo: accountNo,
                 accName: accountName,
-                bankName: bankName
+                bank_name: bankName
               },
-              // Variant 2: Pure 8-Field QuickPay Standard Schema
-              {
-                payMemberId: merchantId,
-                payOrderId: payOrderId,
-                payAmount: netAmt,
-                payChannelCode: settings?.quickpay_payout_channel || '8002',
-                payNotifyUrl: notifyUrl,
-                payApplyDate: getQuickPayFormattedTime(),
-                accountNo: accountNo,
-                accountName: accountName,
-                bankName: bankName
-              },
-              // Variant 3: Pure 8-Field QuickN accountName Schema
+              // Variant 2: QuickN Payout Schema with bankCode
               {
                 mchId: merchantId,
                 mchOrderNo: payOrderId,
                 amount: netAmt,
                 channelId: settings?.quickpay_payout_channel || '8002',
                 notifyUrl: notifyUrl,
-                accountNo: accountNo,
-                accountName: accountName,
-                bankName: bankName
+                bankCardNo: accountNo,
+                accName: accountName,
+                bankCode: bankName
+              },
+              // Variant 3: QuickN Payout Schema with bankName & bank_name
+              {
+                mchId: merchantId,
+                mchOrderNo: payOrderId,
+                amount: netAmt,
+                channelId: settings?.quickpay_payout_channel || '8002',
+                notifyUrl: notifyUrl,
+                bankCardNo: accountNo,
+                accName: accountName,
+                bankName: bankName,
+                bank_name: bankName
               }
             ];
 
