@@ -181,79 +181,81 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
             const accountNo = withdrawal.user?.bank_account_number || withdrawal.wallet_address || '';
             const accountName = withdrawal.user?.bank_account_name || withdrawal.user?.full_name || withdrawal.user?.phone || 'Account Holder';
 
-            const transferPayload = {
-              payMemberId: merchantId,
-              payOrderId: payOrderId,
-              payApplyDate: getQuickPayFormattedTime(),
-              payChannelCode: settings?.quickpay_payout_channel || '8002',
-              payNotifyUrl: notifyUrl,
-              payAmount: netAmt,
-              bankName: bankName,
-              accountNo: accountNo,
-              accountName: accountName
-            };
-
-            transferPayload.sign = buildQuickPaySign(transferPayload, secretKey);
-
-            console.log('Initiating Quick Pay Automated Payout:', transferPayload);
-
-            const cleanGatewayUrl = gatewayUrl.replace(/\/+$/, '');
-            const endpointPaths = [
-              '/api/pay/createDraw',
-              '/api/pay/createPay',
-              '/api/pay/createWithdraw',
-              '/api/pay/createTransfer',
-              '/pay/createTransfer',
-              '/pay/transfer'
+            const payloadVariants = [
+              // Variant 1: Standard QuickPay/QuickN
+              {
+                payMemberId: merchantId,
+                payOrderId: payOrderId,
+                payApplyDate: getQuickPayFormattedTime(),
+                payChannelCode: settings?.quickpay_payout_channel || '8002',
+                payNotifyUrl: notifyUrl,
+                payAmount: netAmt,
+                bankName: bankName,
+                accountNo: accountNo,
+                accountName: accountName
+              },
+              // Variant 2: mchId format
+              {
+                mchId: merchantId,
+                mchOrderNo: payOrderId,
+                channelId: settings?.quickpay_payout_channel || '8002',
+                notifyUrl: notifyUrl,
+                amount: netAmt,
+                bankName: bankName,
+                accountNo: accountNo,
+                accountName: accountName
+              }
             ];
 
             let payoutSuccess = false;
             let lastQJson = null;
+            const fullDrawUrl = `${cleanGatewayUrl}/api/pay/createDraw`;
 
-            for (const ep of endpointPaths) {
-              const fullUrl = `${cleanGatewayUrl}${ep}`;
+            for (const payloadItem of payloadVariants) {
+              const payloadWithSign = {
+                ...payloadItem,
+                sign: buildQuickPaySign(payloadItem, secretKey)
+              };
 
-              // Try JSON
+              // Try JSON on /api/pay/createDraw
               try {
-                const qRes = await fetch(fullUrl, {
+                const qRes = await fetch(fullDrawUrl, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(transferPayload)
+                  body: JSON.stringify(payloadWithSign)
                 });
                 const qJson = await qRes.json();
-                console.log(`Quick Pay Payout Response JSON (${ep}):`, qJson);
+                console.log(`Quick Pay /api/pay/createDraw JSON Response:`, qJson);
+                lastQJson = qJson;
 
                 if (qJson && (qJson.code === 200 || qJson.code === 0 || qJson.code === '0' || qJson.code === '200' || qJson.success === true)) {
-                  console.log(`Quick Pay Payout SUCCESS via ${ep} (JSON)!`);
+                  console.log(`Quick Pay Payout SUCCESS via /api/pay/createDraw (JSON)!`);
                   payoutSuccess = true;
                   break;
-                } else {
-                  lastQJson = qJson;
                 }
               } catch (e) {
-                console.error(`Quick Pay endpoint ${ep} JSON error:`, e.message);
+                console.error(`/api/pay/createDraw JSON error:`, e.message);
               }
 
-              // Try x-www-form-urlencoded
+              // Try x-www-form-urlencoded on /api/pay/createDraw
               try {
-                const formParams = new URLSearchParams(transferPayload).toString();
-                const qRes = await fetch(fullUrl, {
+                const formParams = new URLSearchParams(payloadWithSign).toString();
+                const qRes = await fetch(fullDrawUrl, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                   body: formParams
                 });
                 const qJson = await qRes.json();
-                console.log(`Quick Pay Payout Response Form (${ep}):`, qJson);
+                console.log(`Quick Pay /api/pay/createDraw Form Response:`, qJson);
+                lastQJson = qJson;
 
                 if (qJson && (qJson.code === 200 || qJson.code === 0 || qJson.code === '0' || qJson.code === '200' || qJson.success === true)) {
-                  console.log(`Quick Pay Payout SUCCESS via ${ep} (Form)!`);
+                  console.log(`Quick Pay Payout SUCCESS via /api/pay/createDraw (Form)!`);
                   payoutSuccess = true;
                   break;
-                } else {
-                  lastQJson = qJson;
                 }
               } catch (e) {
-                console.error(`Quick Pay endpoint ${ep} Form error:`, e.message);
+                console.error(`/api/pay/createDraw Form error:`, e.message);
               }
             }
 
