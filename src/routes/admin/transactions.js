@@ -182,29 +182,26 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
             const accountName = withdrawal.user?.bank_account_name || withdrawal.user?.full_name || withdrawal.user?.phone || 'Account Holder';
 
             const payloadVariants = [
-              // Variant 1: QuickN mchId + accName
+              // Variant 1: QuickN mchId + payNotifyUrl + accountName + accName
               {
                 mchId: merchantId,
+                payMemberId: merchantId,
                 mchOrderNo: payOrderId,
+                payOrderId: payOrderId,
                 amount: netAmt,
+                payAmount: netAmt,
                 channelId: settings?.quickpay_payout_channel || '8002',
+                payChannelCode: settings?.quickpay_payout_channel || '8002',
                 notifyUrl: notifyUrl,
+                payNotifyUrl: notifyUrl,
+                pay_notifyurl: notifyUrl,
+                payApplyDate: getQuickPayFormattedTime(),
                 accountNo: accountNo,
+                accountName: accountName,
                 accName: accountName,
                 bankName: bankName
               },
-              // Variant 2: QuickN mchId + accountName
-              {
-                mchId: merchantId,
-                mchOrderNo: payOrderId,
-                amount: netAmt,
-                channelId: settings?.quickpay_payout_channel || '8002',
-                notifyUrl: notifyUrl,
-                accountNo: accountNo,
-                accountName: accountName,
-                bankName: bankName
-              },
-              // Variant 3: Standard payMemberId + accountName
+              // Variant 2: Standard payMemberId format
               {
                 payMemberId: merchantId,
                 payOrderId: payOrderId,
@@ -212,6 +209,17 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                 payChannelCode: settings?.quickpay_payout_channel || '8002',
                 payNotifyUrl: notifyUrl,
                 payApplyDate: getQuickPayFormattedTime(),
+                accountNo: accountNo,
+                accountName: accountName,
+                bankName: bankName
+              },
+              // Variant 3: Standard mchId format
+              {
+                mchId: merchantId,
+                mchOrderNo: payOrderId,
+                amount: netAmt,
+                channelId: settings?.quickpay_payout_channel || '8002',
+                notifyUrl: notifyUrl,
                 accountNo: accountNo,
                 accountName: accountName,
                 bankName: bankName
