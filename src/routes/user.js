@@ -775,7 +775,9 @@ router.get('/team/list', authenticate, async (req, res) => {
       const totalDeposited = u.deposits ? u.deposits.filter(d => d.status === 'approved').reduce((acc, d) => acc + parseFloat(d.amount), 0) : 0;
       return {
         id: u.id,
+        phone: cleanPhoneNumber(u.phone || (u.username && (u.username.startsWith('27') || u.username.startsWith('+27')) ? cleanPhoneNumber(u.username) : u.username) || ''),
         username: u.username || u.full_name || 'Anonymous',
+        created_at: u.created_at,
         joined_at: u.created_at,
         status: u.is_active ? 'Active' : 'Inactive',
         balance: parseFloat(u.balance || 0),
