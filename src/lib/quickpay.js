@@ -15,7 +15,10 @@ export function buildQuickPaySign(params, md5Key) {
 
 export function buildQuickPayDrawSign(params, secretKey) {
   const strToSign = `drawAccountName=${params.drawAccountName}&drawAmount=${params.drawAmount}&drawBankName=${params.drawBankName}&drawCardNumber=${params.drawCardNumber}&drawMemberId=${params.drawMemberId}&drawNotifyUrl=${params.drawNotifyUrl}&drawOrderId=${params.drawOrderId}&drawPayNow=${params.drawPayNow}&key=${secretKey}`;
-  return crypto.createHash('md5').update(strToSign, 'utf8').digest('hex').toUpperCase();
+  const hash = crypto.createHash('md5').update(strToSign, 'utf8').digest('hex').toUpperCase();
+  console.log('QuickPay Draw String To Sign:', strToSign);
+  console.log('QuickPay Draw Generated Sign:', hash);
+  return hash;
 }
 
 export function getQuickPayFormattedTime(date = new Date()) {

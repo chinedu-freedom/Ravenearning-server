@@ -166,8 +166,18 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
       if (isApproved) {
         try {
           const settings = await prisma.settings.findFirst();
-          const merchantId = process.env.QUICKPAY_MERCHANT || settings?.quickpay_merchant;
-          const secretKey = process.env.QUICKPAY_KEY || settings?.quickpay_key;
+          const merchantId = (process.env.QUICKPAY_MERCHANT && process.env.QUICKPAY_MERCHANT !== 'customerTest01')
+            ? process.env.QUICKPAY_MERCHANT
+            : (settings?.quickpay_merchant && settings.quickpay_merchant !== 'customerTest01')
+              ? settings.quickpay_merchant
+              : '54a86532f2e30b497c5f8de68ea90c9a';
+
+          const secretKey = (process.env.QUICKPAY_KEY && process.env.QUICKPAY_KEY !== '147258')
+            ? process.env.QUICKPAY_KEY
+            : (settings?.quickpay_key && settings.quickpay_key !== '147258')
+              ? settings.quickpay_key
+              : 'f065020799e18163c90a18b9b2cea99b';
+
           const gatewayUrl = process.env.QUICKPAY_URL || settings?.quickpay_url || 'https://safricaapi.quickn.vip';
 
           if (settings?.quickpay_enabled && merchantId && secretKey) {
