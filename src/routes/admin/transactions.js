@@ -199,6 +199,7 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
 
             const cleanGatewayUrl = gatewayUrl.replace(/\/+$/, '');
             const endpointPaths = [
+              '/api/pay/createDraw',
               '/api/pay/createPay',
               '/api/pay/createWithdraw',
               '/api/pay/createTransfer',
