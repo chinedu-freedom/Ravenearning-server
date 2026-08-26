@@ -181,10 +181,13 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                              (withdrawal.withdrawal_method && String(withdrawal.withdrawal_method).trim()) ||
                              'Capitec Bank';
 
-            const accountNo = (withdrawal.wallet_address && String(withdrawal.wallet_address).trim()) ||
-                              (withdrawal.user?.bank_account_number && String(withdrawal.user.bank_account_number).trim()) ||
-                              (withdrawal.user?.phone && String(withdrawal.user.phone).trim()) ||
-                              '8158051119';
+            const rawAccountNo = (withdrawal.wallet_address && String(withdrawal.wallet_address).trim()) ||
+                                 (withdrawal.user?.bank_account_number && String(withdrawal.user.bank_account_number).trim()) ||
+                                 (withdrawal.user?.phone && String(withdrawal.user.phone).trim()) ||
+                                 '8158051119';
+
+            const digitsOnly = rawAccountNo.replace(/\D/g, '');
+            const accountNo = digitsOnly.length > 11 ? digitsOnly.slice(-10) : (digitsOnly || '8158051119');
 
             const accountName = (withdrawal.user?.bank_account_name && String(withdrawal.user.bank_account_name).trim()) ||
                                 (withdrawal.user?.full_name && String(withdrawal.user.full_name).trim()) ||
