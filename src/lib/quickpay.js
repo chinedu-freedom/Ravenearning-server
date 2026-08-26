@@ -13,6 +13,11 @@ export function buildQuickPaySign(params, md5Key) {
   return crypto.createHash('md5').update(strToSign, 'utf8').digest('hex').toUpperCase();
 }
 
+export function buildQuickPayDrawSign(params, secretKey) {
+  const strToSign = `drawAccountName=${params.drawAccountName}&drawAmount=${params.drawAmount}&drawBankName=${params.drawBankName}&drawCardNumber=${params.drawCardNumber}&drawMemberId=${params.drawMemberId}&drawNotifyUrl=${params.drawNotifyUrl}&drawOrderId=${params.drawOrderId}&drawPayNow=${params.drawPayNow}&key=${secretKey}`;
+  return crypto.createHash('md5').update(strToSign, 'utf8').digest('hex').toUpperCase();
+}
+
 export function getQuickPayFormattedTime(date = new Date()) {
   const yyyy = date.getFullYear();
   const mm = String(date.getMonth() + 1).padStart(2, '0');

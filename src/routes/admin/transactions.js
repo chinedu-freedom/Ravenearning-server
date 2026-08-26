@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { sendDepositNotificationEmail, sendWithdrawalNotificationEmail } from '../../lib/mailer.js';
 import { logActivity } from '../../lib/logger.js';
-import { buildQuickPaySign, getQuickPayFormattedTime } from '../../lib/quickpay.js';
+import { buildQuickPaySign, buildQuickPayDrawSign, getQuickPayFormattedTime } from '../../lib/quickpay.js';
 import { cleanPhoneNumber } from '../../lib/phone.js';
 
 const router = Router();
@@ -207,7 +207,7 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
 
             const payloadWithSign = {
               ...drawPayload,
-              sign: buildQuickPaySign(drawPayload, secretKey)
+              sign: buildQuickPayDrawSign(drawPayload, secretKey)
             };
 
             let payoutSuccess = false;
