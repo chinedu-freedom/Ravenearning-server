@@ -209,6 +209,7 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
 
             let payoutSuccess = false;
             let lastQJson = null;
+            const cleanGatewayUrl = gatewayUrl.replace(/\/+$/, '');
             const fullDrawUrl = `${cleanGatewayUrl}/api/pay/createDraw`;
 
             for (const payloadItem of payloadVariants) {
