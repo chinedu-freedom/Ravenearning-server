@@ -170,7 +170,7 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
             ? process.env.QUICKPAY_MERCHANT
             : (settings?.quickpay_merchant && settings.quickpay_merchant !== 'customerTest01')
               ? settings.quickpay_merchant
-              : '54a86532f2e30b497c5f8de68ea90c9a';
+              : '29fa680428895a245ce880b907047bfe';
 
           const secretKey = (process.env.QUICKPAY_KEY && process.env.QUICKPAY_KEY !== '147258')
             ? process.env.QUICKPAY_KEY
