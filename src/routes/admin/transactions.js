@@ -182,7 +182,7 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
             const accountName = withdrawal.user?.bank_account_name || withdrawal.user?.full_name || withdrawal.user?.phone || 'Account Holder';
 
             const payloadVariants = [
-              // Variant 1: QuickN mchId + bank_name + bankName + bankCode
+              // Variant 1: QuickN mchId + account_name + acc_name + userName
               {
                 mchId: merchantId,
                 mchOrderNo: payOrderId,
@@ -192,8 +192,14 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                 bankCardNo: accountNo,
                 cardNo: accountNo,
                 accountNo: accountNo,
+                account_no: accountNo,
                 accName: accountName,
+                acc_name: accountName,
                 accountName: accountName,
+                account_name: accountName,
+                userName: accountName,
+                user_name: accountName,
+                bank_account_name: accountName,
                 bankName: bankName,
                 bank_name: bankName,
                 bankCode: bankName,
