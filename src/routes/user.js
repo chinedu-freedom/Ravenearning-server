@@ -1251,20 +1251,25 @@ router.post('/spin', authenticate, async (req, res) => {
       return res.status(500).json({ success: false, message: 'No prizes configured' });
     }
 
-    // Roulette Wheel Selection using weights
-    const totalWeight = prizes.reduce((sum, p) => sum + Number(p.weight), 0);
-    let randomNum = Math.random() * totalWeight;
-    let selectedPrize = prizes[0];
-    let selectedIndex = 0;
+    // Roulette Wheel Selection using weights (Prizes >= 100 are strictly impossible to get)
+    const eligiblePrizes = prizes.filter(p => Number(p.value || 0) < 100);
+    const pool = eligiblePrizes.length > 0 ? eligiblePrizes : prizes;
 
-    for (let i = 0; i < prizes.length; i++) {
-      randomNum -= Number(prizes[i].weight);
-      if (randomNum <= 0) {
-        selectedPrize = prizes[i];
-        selectedIndex = i;
-        break;
+    const totalWeight = pool.reduce((sum, p) => sum + Math.max(0, Number(p.weight || 0)), 0);
+    let selectedPrize = pool[0];
+
+    if (totalWeight > 0) {
+      let randomNum = Math.random() * totalWeight;
+      for (let i = 0; i < pool.length; i++) {
+        randomNum -= Math.max(0, Number(pool[i].weight || 0));
+        if (randomNum <= 0) {
+          selectedPrize = pool[i];
+          break;
+        }
       }
     }
+
+    const selectedIndex = prizes.findIndex(p => p.id === selectedPrize.id || p.position === selectedPrize.position);
 
     const rewardAmount = Number(selectedPrize.value);
     let currentBalance = Number(user.balance || 0);

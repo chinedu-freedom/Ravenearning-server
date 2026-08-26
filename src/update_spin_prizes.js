@@ -24,11 +24,11 @@ async function main() {
     { position: 1, name: 'R 1.00', value: 1.00, weight: 10000, probability: 0.50, color: '#fefefe' },
     { position: 2, name: 'R 5.00', value: 5.00, weight: 5000, probability: 0.25, color: '#fdf6e3' },
     { position: 3, name: 'R 10.00', value: 10.00, weight: 3000, probability: 0.15, color: '#fefefe' },
-    { position: 4, name: 'R 50.00', value: 50.00, weight: 1500, probability: 0.08, color: '#fdf6e3' },
-    { position: 5, name: 'R 100.00', value: 100.00, weight: 30, probability: 0.0015, color: '#fefefe' },
-    { position: 6, name: 'R 500.00', value: 500.00, weight: 10, probability: 0.0005, color: '#fdf6e3' },
-    { position: 7, name: 'R 1000.00', value: 1000.00, weight: 3, probability: 0.00015, color: '#fefefe' },
-    { position: 8, name: 'R 5000.00', value: 5000.00, weight: 1, probability: 0.00005, color: '#fdf6e3' },
+    { position: 4, name: 'R 50.00', value: 50.00, weight: 1500, probability: 0.10, color: '#fdf6e3' },
+    { position: 5, name: 'R 100.00', value: 100.00, weight: 0, probability: 0.00, color: '#fefefe' },
+    { position: 6, name: 'R 500.00', value: 500.00, weight: 0, probability: 0.00, color: '#fdf6e3' },
+    { position: 7, name: 'R 1000.00', value: 1000.00, weight: 0, probability: 0.00, color: '#fefefe' },
+    { position: 8, name: 'R 5000.00', value: 5000.00, weight: 0, probability: 0.00, color: '#fdf6e3' },
   ];
 
   for (const item of newPrizes) {
