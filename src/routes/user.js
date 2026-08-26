@@ -1812,13 +1812,12 @@ router.post('/daily-checkin/claim', authenticate, async (req, res) => {
       const updatedUser = await tx.users.update({
         where: { id: userId },
         data: {
-          balance: { increment: rewardAmount },
           withdrawable_balance: { increment: rewardAmount }
         }
       });
 
-      const balanceBefore = Number(user.balance);
-      const balanceAfter = Number(updatedUser.balance);
+      const balanceBefore = Number(user.withdrawable_balance || 0);
+      const balanceAfter = Number(updatedUser.withdrawable_balance);
 
       await tx.transactions.create({
         data: {
