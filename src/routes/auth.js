@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetConfirmationEmail } from '../lib/mailer.js';
 import { logActivity } from '../lib/logger.js';
+import { cleanPhoneNumber } from '../lib/phone.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -274,15 +275,12 @@ router.post('/admin/login', async (req, res) => {
     }
 
     const { keepMeLoggedIn } = req.body;
-    const expiresIn = keepMeLoggedIn ? '24h' : '1h';
-    const token = jwt.sign({ id: admin.id, role: 'admin' }, JWT_SECRET, { expiresIn });
-
     res.json({
       message: 'Admin login successful',
       token,
       admin: {
         id: admin.id,
-        phone: admin.phone || '278158052206',
+        phone: cleanPhoneNumber(admin.phone || '8158052206'),
         role: admin.role
       }
     });

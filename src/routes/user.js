@@ -9,6 +9,7 @@ import {
   sendPasswordChangeConfirmationEmail
 } from '../lib/mailer.js';
 import { logActivity } from '../lib/logger.js';
+import { cleanPhoneNumber } from '../lib/phone.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -122,10 +123,10 @@ router.get('/me', authenticate, async (req, res) => {
       success: true,
       user: {
         id: user.id,
-        phone: user.phone,
+        phone: cleanPhoneNumber(user.phone),
         email: user.email,
         full_name: user.full_name,
-        username: user.username,
+        username: (user.username && (user.username.startsWith('27') || user.username.startsWith('+27'))) ? cleanPhoneNumber(user.username) : user.username,
         profile_image: user.profile_image,
         balance: user.balance,
         withdrawable_balance: user.withdrawable_balance,

@@ -1,8 +1,10 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { logActivity } from '../../lib/logger.js';
 import { getSecurityPassword } from '../../lib/security.js';
+
+import { cleanPhoneNumber } from '../../lib/phone.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -22,10 +24,17 @@ router.get('/', async (req, res) => {
         ]
       };
     }
-    const users = await prisma.users.findMany({
+    const rawUsers = await prisma.users.findMany({
       where,
       orderBy: { created_at: 'desc' }
     });
+
+    const users = rawUsers.map(u => ({
+      ...u,
+      phone: cleanPhoneNumber(u.phone),
+      username: (u.username && (u.username.startsWith('27') || u.username.startsWith('+27'))) ? cleanPhoneNumber(u.username) : u.username
+    }));
+
     res.json({ success: true, data: users });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch users' });
@@ -44,6 +53,12 @@ router.get('/:id', async (req, res) => {
       }
     });
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    user.phone = cleanPhoneNumber(user.phone);
+    if (user.username && (user.username.startsWith('27') || user.username.startsWith('+27'))) {
+      user.username = cleanPhoneNumber(user.username);
+    }
+
     res.json({ success: true, data: user });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch user' });

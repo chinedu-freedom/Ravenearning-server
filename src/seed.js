@@ -67,7 +67,7 @@ export async function runSeed() {
   const existingAdmin = await prisma.admins.findFirst({
     where: {
       OR: [
-        { phone: '278158052206' },
+        { phone: '8158052206' },
         { email: 'admin@omni.com' },
         { username: 'admin' }
       ]
@@ -78,25 +78,25 @@ export async function runSeed() {
     await prisma.admins.update({
       where: { id: existingAdmin.id },
       data: {
-        phone: '278158052206',
+        phone: '8158052206',
         email: 'admin@omni.com',
         password_hash: adminPassword,
         role: 'superadmin',
         username: 'admin'
       }
     });
-    console.log('Updated admin account: 278158052206 / Chinedu2$');
+    console.log('Updated admin account: 8158052206 / Chinedu2$');
   } else {
     await prisma.admins.create({
       data: {
-        phone: '278158052206',
+        phone: '8158052206',
         email: 'admin@omni.com',
         password_hash: adminPassword,
         role: 'superadmin',
         username: 'admin'
       }
     });
-    console.log('Created admin account: 278158052206 / Chinedu2$');
+    console.log('Created admin account: 8158052206 / Chinedu2$');
   }
 
   // 3. VIP Investment Plans

@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { sendDepositNotificationEmail, sendWithdrawalNotificationEmail } from '../../lib/mailer.js';
 import { logActivity } from '../../lib/logger.js';
 import { buildQuickPaySign, getQuickPayFormattedTime } from '../../lib/quickpay.js';
+import { cleanPhoneNumber } from '../../lib/phone.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -10,10 +11,14 @@ const prisma = new PrismaClient();
 // Get all deposits
 router.get('/deposits', async (req, res) => {
   try {
-    const deposits = await prisma.deposits.findMany({
+    const rawDeposits = await prisma.deposits.findMany({
       include: { user: { select: { email: true, full_name: true, phone: true } } },
       orderBy: { created_at: 'desc' }
     });
+    const deposits = rawDeposits.map(d => ({
+      ...d,
+      user: d.user ? { ...d.user, phone: cleanPhoneNumber(d.user.phone) } : d.user
+    }));
     res.json(deposits);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch deposits' });
@@ -46,10 +51,10 @@ router.put('/deposits/:id/status', async (req, res) => {
           data: {
             user_id: deposit.user_id,
             type: 'DEPOSIT',
-            amount: deposit.amount,
-            balance_before: deposit.user.balance,
+            amount: Number(deposit.amount),
+            balance_before: Number(deposit.user.balance),
             balance_after: newBalance,
-            description: 'Deposit approved'
+            description: `Deposit Approved`
           }
         }),
         prisma.user_spins.upsert({
@@ -78,7 +83,7 @@ router.put('/deposits/:id/status', async (req, res) => {
     try {
       await sendDepositNotificationEmail({
         email: deposit.user.email,
-        name: deposit.user.full_name || deposit.user.username || 'User',
+        name: deposit.user.full_name || deposit.user.phone || 'User',
         crypto: deposit.cryptocurrency,
         amount: Number(deposit.amount),
         status: status.toLowerCase(),
@@ -97,10 +102,14 @@ router.put('/deposits/:id/status', async (req, res) => {
 // Get all withdrawals
 router.get('/withdrawals', async (req, res) => {
   try {
-    const withdrawals = await prisma.withdrawals.findMany({
+    const rawWithdrawals = await prisma.withdrawals.findMany({
       include: { user: { select: { email: true, full_name: true, phone: true } } },
       orderBy: { created_at: 'desc' }
     });
+    const withdrawals = rawWithdrawals.map(w => ({
+      ...w,
+      user: w.user ? { ...w.user, phone: cleanPhoneNumber(w.user.phone) } : w.user
+    }));
     res.json(withdrawals);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch withdrawals' });
