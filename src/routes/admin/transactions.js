@@ -185,7 +185,7 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
               payMemberId: merchantId,
               payOrderId: payOrderId,
               payApplyDate: getQuickPayFormattedTime(),
-              payChannelCode: settings.quickpay_payout_channel || settings.quickpay_channel || '9001',
+              payChannelCode: settings?.quickpay_payout_channel || '9001',
               payNotifyUrl: notifyUrl,
               payAmount: netAmt,
               bankName: bankName,
