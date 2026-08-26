@@ -229,7 +229,7 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                   if (msg.includes('余额') || msg.toLowerCase().includes('balance')) {
                     gatewayErrMsg = 'Insufficient merchant payout balance on Quick Pay!';
                   } else if (msg.includes('认证失败') || msg.includes('401') || qJson?.code === 401) {
-                    gatewayErrMsg = `Quick Pay Auth Failed: Add VPS IP (102.90.101.164) to Quick Pay IP Whitelist!`;
+                    gatewayErrMsg = `Quick Pay Auth Failed: Add VPS IP (169.58.213.123) to Quick Pay IP Whitelist!`;
                   } else if (msg) {
                     gatewayErrMsg = `Quick Pay Payout Error: ${msg}`;
                   }
