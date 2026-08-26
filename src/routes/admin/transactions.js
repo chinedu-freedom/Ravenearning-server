@@ -212,12 +212,12 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
             for (const ep of endpointPaths) {
               const fullUrl = `${cleanGatewayUrl}${ep}`;
               try {
-                qRes = await fetch(fullUrl, {
+                const qRes = await fetch(fullUrl, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(transferPayload)
                 });
-                qJson = await qRes.json();
+                const qJson = await qRes.json();
                 console.log(`Quick Pay Payout Response (${ep}):`, qJson);
 
                 if (qJson && (qJson.code === 200 || qJson.code === 0 || qJson.code === '0' || qJson.code === '200' || qJson.success === true)) {
