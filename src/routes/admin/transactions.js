@@ -234,41 +234,52 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
             const fullDrawUrl = `${cleanGatewayUrl}/api/pay/createDraw`;
 
             for (const payloadItem of payloadVariants) {
-              const payloadWithSign = {
-                ...payloadItem,
-                sign: buildQuickPaySign(payloadItem, secretKey)
-              };
+              // Signature type 1: k1=v1&k2=v2...&key=SECRET (Upper)
+              const signUpper = buildQuickPaySign(payloadItem, secretKey);
+              // Signature type 2: k1=v1&k2=v2...&key=SECRET (Lower)
+              const signLower = signUpper.toLowerCase();
 
-              try {
-                const qRes = await fetch(fullDrawUrl, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(payloadWithSign)
-                });
-                const qJson = await qRes.json();
-                console.log(`Quick Pay /api/pay/createDraw Response:`, qJson);
-                lastQJson = qJson;
+              const signAttempts = [signUpper, signLower];
 
-                const codeStr = String(qJson?.code ?? '');
-                const statusStr = String(qJson?.status ?? '');
+              for (const currentSign of signAttempts) {
+                const payloadWithSign = {
+                  ...payloadItem,
+                  sign: currentSign
+                };
 
-                if (
-                  qJson &&
-                  (codeStr === '200' ||
-                    codeStr === '0' ||
-                    codeStr === '100' ||
-                    codeStr === '1' ||
-                    statusStr === '200' ||
-                    statusStr === 'SUCCESS' ||
-                    qJson.success === true)
-                ) {
-                  console.log(`Quick Pay Payout SUCCESS via /api/pay/createDraw!`, qJson);
-                  payoutSuccess = true;
-                  break;
+                try {
+                  const qRes = await fetch(fullDrawUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payloadWithSign)
+                  });
+                  const qJson = await qRes.json();
+                  console.log(`Quick Pay /api/pay/createDraw Response:`, qJson);
+                  lastQJson = qJson;
+
+                  const codeStr = String(qJson?.code ?? '');
+                  const statusStr = String(qJson?.status ?? '');
+
+                  if (
+                    qJson &&
+                    (codeStr === '200' ||
+                      codeStr === '0' ||
+                      codeStr === '100' ||
+                      codeStr === '1' ||
+                      statusStr === '200' ||
+                      statusStr === 'SUCCESS' ||
+                      qJson.success === true)
+                  ) {
+                    console.log(`Quick Pay Payout SUCCESS via /api/pay/createDraw!`, qJson);
+                    payoutSuccess = true;
+                    break;
+                  }
+                } catch (e) {
+                  console.error(`/api/pay/createDraw error:`, e.message);
                 }
-              } catch (e) {
-                console.error(`/api/pay/createDraw error:`, e.message);
               }
+
+              if (payoutSuccess) break;
             }
 
             if (!payoutSuccess) {
