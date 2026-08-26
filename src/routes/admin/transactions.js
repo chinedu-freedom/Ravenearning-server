@@ -191,95 +191,55 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
                                 (withdrawal.user?.phone && String(withdrawal.user.phone).trim()) ||
                                 'Account Holder';
 
-            const payloadVariants = [
-              // Variant 1: QuickN Payout Schema with bank_name
-              {
-                mchId: merchantId,
-                mchOrderNo: payOrderId,
-                amount: netAmt,
-                channelId: settings?.quickpay_payout_channel || '8002',
-                notifyUrl: notifyUrl,
-                bankCardNo: accountNo,
-                accName: accountName,
-                bank_name: bankName
-              },
-              // Variant 2: QuickN Payout Schema with bankCode
-              {
-                mchId: merchantId,
-                mchOrderNo: payOrderId,
-                amount: netAmt,
-                channelId: settings?.quickpay_payout_channel || '8002',
-                notifyUrl: notifyUrl,
-                bankCardNo: accountNo,
-                accName: accountName,
-                bankCode: bankName
-              },
-              // Variant 3: QuickN Payout Schema with bankName & bank_name
-              {
-                mchId: merchantId,
-                mchOrderNo: payOrderId,
-                amount: netAmt,
-                channelId: settings?.quickpay_payout_channel || '8002',
-                notifyUrl: notifyUrl,
-                bankCardNo: accountNo,
-                accName: accountName,
-                bankName: bankName,
-                bank_name: bankName
-              }
-            ];
+            const drawPayload = {
+              drawMemberId: merchantId,
+              drawOrderId: payOrderId,
+              drawAmount: netAmt,
+              drawPayNow: "1",
+              drawBankName: bankName,
+              drawCardNumber: accountNo,
+              drawAccountName: accountName,
+              drawNotifyUrl: notifyUrl
+            };
+
+            const payloadWithSign = {
+              ...drawPayload,
+              sign: buildQuickPaySign(drawPayload, secretKey)
+            };
 
             let payoutSuccess = false;
             let lastQJson = null;
             const cleanGatewayUrl = gatewayUrl.replace(/\/+$/, '');
             const fullDrawUrl = `${cleanGatewayUrl}/api/pay/createDraw`;
 
-            for (const payloadItem of payloadVariants) {
-              // Signature type 1: k1=v1&k2=v2...&key=SECRET (Upper)
-              const signUpper = buildQuickPaySign(payloadItem, secretKey);
-              // Signature type 2: k1=v1&k2=v2...&key=SECRET (Lower)
-              const signLower = signUpper.toLowerCase();
+            try {
+              const qRes = await fetch(fullDrawUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payloadWithSign)
+              });
+              const qJson = await qRes.json();
+              console.log(`Quick Pay /api/pay/createDraw Official Response:`, qJson);
+              lastQJson = qJson;
 
-              const signAttempts = [signUpper, signLower];
+              const codeStr = String(qJson?.code ?? '');
+              const statusStr = String(qJson?.status ?? '');
 
-              for (const currentSign of signAttempts) {
-                const payloadWithSign = {
-                  ...payloadItem,
-                  sign: currentSign
-                };
-
-                try {
-                  const qRes = await fetch(fullDrawUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payloadWithSign)
-                  });
-                  const qJson = await qRes.json();
-                  console.log(`Quick Pay /api/pay/createDraw Response:`, qJson);
-                  lastQJson = qJson;
-
-                  const codeStr = String(qJson?.code ?? '');
-                  const statusStr = String(qJson?.status ?? '');
-
-                  if (
-                    qJson &&
-                    (codeStr === '200' ||
-                      codeStr === '0' ||
-                      codeStr === '100' ||
-                      codeStr === '1' ||
-                      statusStr === '200' ||
-                      statusStr === 'SUCCESS' ||
-                      qJson.success === true)
-                  ) {
-                    console.log(`Quick Pay Payout SUCCESS via /api/pay/createDraw!`, qJson);
-                    payoutSuccess = true;
-                    break;
-                  }
-                } catch (e) {
-                  console.error(`/api/pay/createDraw error:`, e.message);
-                }
+              if (
+                qJson &&
+                (codeStr === '200' ||
+                  codeStr === '0' ||
+                  codeStr === '100' ||
+                  codeStr === '1' ||
+                  statusStr === '200' ||
+                  statusStr === 'SUCCESS' ||
+                  qJson.success === true)
+              ) {
+                console.log(`Quick Pay Payout SUCCESS via /api/pay/createDraw!`, qJson);
+                payoutSuccess = true;
               }
-
-              if (payoutSuccess) break;
+            } catch (e) {
+              console.error(`/api/pay/createDraw error:`, e.message);
             }
 
             if (!payoutSuccess) {

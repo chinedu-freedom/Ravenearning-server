@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+
+    <title>提交测试</title>
+
+</head>
+<body>
+<div class="container">
+    ----------------------------交易订单预下单提交---------------------------------------
+    <br/><br/>
+    <form id="prepayForm" action="/api/prepay" method="post">
+             商户订单号：<input name="merOrderNo" type="text"/><br/>
+             金额：<input name="amount" type="text"/><br/>
+             银行编码：<input name="bankCode" type="text" value="ICBC"/><br/>
+             支付类型：<input name="payType" type="text" value="ebank"/><br/>
+             回调地址：<input name="notifyUrl" type="text" value="http://127.0.0.1"/><br/>
+             订单有效期：<input name="expireTime" type="text" value="10"/><br/>
+             订单请求IP：<input name="orderIp" type="text" value="127.0.0.1"/><br/>
+             回显地址：<input name="returnViewUrl" type="text" value=""/><br/>
+             备注：<input name="remarks" type="text" value="备注"/><br/>
+        <button type="submit">预下单提交</button>
+    </form>
+
+    <br/><br/>
+    ----------------------------代付订单提交---------------------------------------
+    <br/><br/>
+
+    <form id="remitOrderForm" action="/api/remitSubmit" method="post">
+        商户订单号：<input name="merOrderNo" type="text"/><br/>
+        金额：<input name="amount" type="text"/><br/>
+        银行编码：<input name="bankCode" type="text" value="ICBC"/><br/>
+        银行账号：<input name="bankAccountNo" type="text" value="622222222222222"/><br/>
+        持卡人名字：<input name="bankAccountName" type="text" value="张三"/><br/>
+        回调地址：<input name="notifyUrl" type="text" value="http://127.0.0.1"/><br/>
+        备注：<input name="remarks" type="text" value="备注"/><br/>
+        <button type="submit">代付订单提交</button>
+    </form>
+
+    <br/><br/>
+    ----------------------------交易订单查询提交---------------------------------------
+    <br/><br/>
+
+    <form id="payOrderQueryForm" action="/api/payOrderQuery" method="post">
+        商户订单号：<input name="merOrderNo" type="text"/><br/>
+        <button type="submit">交易订单查询提交</button>
+    </form>
+
+    <br/><br/>
+    ----------------------------代付订单查询提交---------------------------------------
+    <br/><br/>
+
+    <form id="remitOrderQueryForm" action="/api/remitOrderQuery" method="post">
+        商户订单号：<input name="merOrderNo" type="text"/><br/>
+        <button type="submit">代付订单查询提交</button>
+    </form>
+</div>
+</body>
+</html>
