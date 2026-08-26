@@ -182,78 +182,51 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
             const accountName = withdrawal.user?.bank_account_name || withdrawal.user?.full_name || withdrawal.user?.phone || 'Account Holder';
 
             const payloadVariants = [
-              // Variant 1: Complete Unified QuickPay / QuickN format (All order & merchant aliases)
+              // Variant 1: QuickN mchId + accName
               {
                 mchId: merchantId,
-                payMemberId: merchantId,
-                mch_id: merchantId,
-                pay_memberid: merchantId,
-
                 mchOrderNo: payOrderId,
-                payOrderId: payOrderId,
-                out_trade_no: payOrderId,
-                mch_order_no: payOrderId,
-                pay_orderid: payOrderId,
-
                 amount: netAmt,
-                payAmount: netAmt,
-                pay_amount: netAmt,
-
                 channelId: settings?.quickpay_payout_channel || '8002',
-                payChannelCode: settings?.quickpay_payout_channel || '8002',
-                pay_bankcode: settings?.quickpay_payout_channel || '8002',
-
-                payApplyDate: getQuickPayFormattedTime(),
-                pay_applydate: getQuickPayFormattedTime(),
-
                 notifyUrl: notifyUrl,
-                payNotifyUrl: notifyUrl,
-
-                bankName: bankName,
-                bank_name: bankName,
-                bankCode: bankName,
-                bank_code: bankName,
-
                 accountNo: accountNo,
-                account_no: accountNo,
-                accNo: accountNo,
-                acc_no: accountNo,
-                cardNo: accountNo,
-                card_no: accountNo,
-                bankCardNo: accountNo,
-
-                accountName: accountName,
-                account_name: accountName,
                 accName: accountName,
-                acc_name: accountName,
-                userName: accountName,
-                user_name: accountName,
-                realName: accountName,
-                real_name: accountName,
-                bankAccountName: accountName
+                bankName: bankName
               },
-              // Variant 2: Standard payMemberId format
-              {
-                payMemberId: merchantId,
-                payOrderId: payOrderId,
-                payApplyDate: getQuickPayFormattedTime(),
-                payChannelCode: settings?.quickpay_payout_channel || '8002',
-                payNotifyUrl: notifyUrl,
-                payAmount: netAmt,
-                bankName: bankName,
-                accountNo: accountNo,
-                accountName: accountName
-              },
-              // Variant 3: Standard mchId format
+              // Variant 2: QuickN mchId + accountName
               {
                 mchId: merchantId,
                 mchOrderNo: payOrderId,
+                amount: netAmt,
                 channelId: settings?.quickpay_payout_channel || '8002',
                 notifyUrl: notifyUrl,
-                amount: netAmt,
-                bankName: bankName,
                 accountNo: accountNo,
-                accountName: accountName
+                accountName: accountName,
+                bankName: bankName
+              },
+              // Variant 3: Standard payMemberId + accountName
+              {
+                payMemberId: merchantId,
+                payOrderId: payOrderId,
+                payAmount: netAmt,
+                payChannelCode: settings?.quickpay_payout_channel || '8002',
+                payNotifyUrl: notifyUrl,
+                payApplyDate: getQuickPayFormattedTime(),
+                accountNo: accountNo,
+                accountName: accountName,
+                bankName: bankName
+              },
+              // Variant 4: Snake_case pay_memberid + account_name
+              {
+                pay_memberid: merchantId,
+                pay_orderid: payOrderId,
+                pay_amount: netAmt,
+                pay_bankcode: settings?.quickpay_payout_channel || '8002',
+                pay_notifyurl: notifyUrl,
+                pay_applydate: getQuickPayFormattedTime(),
+                account_no: accountNo,
+                account_name: accountName,
+                bank_name: bankName
               }
             ];
 
