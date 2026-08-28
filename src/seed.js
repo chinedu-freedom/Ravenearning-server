@@ -58,11 +58,7 @@ export async function runSeed() {
     await prisma.settings.create({ data: defaultSettings });
     console.log('Created default platform settings');
   } else {
-    await prisma.settings.update({
-      where: { id: existingSettings.id },
-      data: defaultSettings
-    });
-    console.log('Updated platform settings to Ravenearning defaults');
+    console.log('Platform settings already initialized, preserving admin configurations.');
   }
 
   // 2. Admin
