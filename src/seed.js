@@ -33,6 +33,7 @@ const defaultSettings = {
   level3_commission: 5,
   level4_commission: 0,
   live_market_enabled: true,
+  activity_series_enabled: false,
 };
 
 const vipPlans = [

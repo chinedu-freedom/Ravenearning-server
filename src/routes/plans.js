@@ -52,6 +52,37 @@ router.post('/invest', authenticate, async (req, res) => {
       return res.status(400).json({ success: false, error: 'This VIP product is currently sold out.' });
     }
 
+    // Check Activity Series requirements
+    if (plan.category === 'Activity Series') {
+      const settings = await prisma.settings.findFirst();
+      if (!settings?.activity_series_enabled) {
+        return res.status(400).json({
+          success: false,
+          error: 'Activity Series packages are currently not active. Please check back later!'
+        });
+      }
+
+      // Check if user has an existing investment in a VIP Series package
+      const vipInvestment = await prisma.investments.findFirst({
+        where: {
+          user_id: userId,
+          plan: {
+            OR: [
+              { category: 'VIP Series' },
+              { category: null }
+            ]
+          }
+        }
+      });
+
+      if (!vipInvestment) {
+        return res.status(400).json({
+          success: false,
+          error: 'Only members who have activated a VIP Series package can purchase Activity Series packages. Please activate a VIP package first!'
+        });
+      }
+    }
+
     const investAmount = Number(amount);
     if (isNaN(investAmount) || investAmount < Number(plan.min_investment) || investAmount > Number(plan.max_investment)) {
       return res.status(400).json({ success: false, error: `Investment must be between ${plan.min_investment} and ${plan.max_investment}` });

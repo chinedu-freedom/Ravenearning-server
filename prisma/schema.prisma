@@ -416,6 +416,7 @@ model settings {
   // Features
   live_market_enabled      Boolean  @default(true)
   daily_checkin_enabled    Boolean  @default(true)
+  activity_series_enabled  Boolean  @default(false)
   require_investment_to_withdraw Boolean @default(false)
   min_investment_to_withdraw     Int     @default(1)
   

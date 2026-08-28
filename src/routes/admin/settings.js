@@ -134,7 +134,7 @@ router.put('/platform', async (req, res) => {
       'daily_withdrawal_limit', 'withdrawal_open_time', 'withdrawal_close_time', 'auto_withdrawal',
       'min_withdrawal', 'max_withdrawal', 'withdrawal_charge', 'level1_commission', 'level2_commission',
       'level3_commission', 'level4_commission', 'live_market_enabled', 'daily_checkin_enabled',
-      'require_investment_to_withdraw', 'min_investment_to_withdraw'
+      'activity_series_enabled', 'require_investment_to_withdraw', 'min_investment_to_withdraw'
     ];
 
     const cleanData = {};
