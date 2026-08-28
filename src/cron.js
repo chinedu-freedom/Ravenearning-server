@@ -31,7 +31,66 @@ const runProfitPayouts = async () => {
     const settings = await prisma.settings.findFirst();
 
     for (const inv of activeInvestments) {
-      // Find the last payout date, or fallback to start_date
+      const isActivitySeries = inv.plan?.category === 'Activity Series';
+
+      if (isActivitySeries) {
+        // --- ACTIVITY SERIES: Pay full lump sum ONLY when plan duration ends ---
+        if (now >= new Date(inv.end_date)) {
+          const durationDays = Number(inv.plan?.duration || 1);
+          const totalProfits = parseFloat(inv.daily_profit || 0) * durationDays;
+          const totalPayout = inv.plan?.total_revenue 
+            ? parseFloat(inv.plan.total_revenue) 
+            : (parseFloat(inv.amount || 0) + totalProfits);
+
+          const user = await prisma.users.findUnique({ where: { id: inv.user_id } });
+          if (user) {
+            const oldBal = parseFloat(user.withdrawable_balance || 0);
+            const newBal = oldBal + totalPayout;
+
+            // Credit total lump sum to withdrawable balance
+            await prisma.users.update({
+              where: { id: inv.user_id },
+              data: { withdrawable_balance: newBal }
+            });
+
+            // Log profit record
+            await prisma.investment_profits.create({
+              data: {
+                investment_id: inv.id,
+                user_id: inv.user_id,
+                amount: totalPayout,
+                paid_date: now
+              }
+            });
+
+            // Log transaction
+            await prisma.transactions.create({
+              data: {
+                user_id: inv.user_id,
+                type: 'profit',
+                amount: totalPayout,
+                balance_before: oldBal,
+                balance_after: newBal,
+                description: `Activity Series Lump Sum Maturity Payout for ${inv.plan.name}`,
+                reference_id: inv.id
+              }
+            });
+          }
+
+          // Mark investment as COMPLETED
+          await prisma.investments.update({
+            where: { id: inv.id },
+            data: {
+              status: 'COMPLETED',
+              total_paid: totalPayout.toFixed(8)
+            }
+          });
+        }
+        // Skip daily payouts for Activity Series
+        continue;
+      }
+
+      // --- VIP SERIES: Standard Daily Profit Payouts ---
       const lastPayoutDate = inv.profits.length > 0
         ? new Date(inv.profits[0].paid_date)
         : new Date(inv.start_date);
