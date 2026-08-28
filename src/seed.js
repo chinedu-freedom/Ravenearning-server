@@ -36,14 +36,16 @@ const defaultSettings = {
 };
 
 const vipPlans = [
-  { name: 'Raven Z6X', min_investment: 300, max_investment: 300, daily_income: 75, duration: 180, image: '/logo.png', status: true },
-  { name: 'Raven Z7 Max', min_investment: 700, max_investment: 700, daily_income: 204, duration: 180, image: '/logo.png', status: true },
-  { name: 'Raven Z8 Ultra', min_investment: 1500, max_investment: 1500, daily_income: 390, duration: 180, image: '/logo.png', status: true },
-  { name: 'Raven H4 Pro', min_investment: 3500, max_investment: 3500, daily_income: 795, duration: 180, image: '/logo.png', status: true },
-  { name: 'Raven H8 Max', min_investment: 7000, max_investment: 7000, daily_income: 1620, duration: 180, image: '/logo.png', status: true },
-  { name: 'Raven H9 Ultra', min_investment: 15000, max_investment: 15000, daily_income: 3360, duration: 180, image: '/logo.png', status: true },
-  { name: 'Raven T7', min_investment: 30000, max_investment: 30000, daily_income: 7500, duration: 180, image: '/logo.png', status: true },
-  { name: 'Raven T10 Pro', min_investment: 50000, max_investment: 50000, daily_income: 20000, duration: 180, image: '/logo.png', status: true }
+  { name: 'Raven Z6X', category: 'VIP Series', min_investment: 300, max_investment: 300, daily_income: 75, duration: 180, image: '/logo.png', status: true },
+  { name: 'Raven Z7 Max', category: 'VIP Series', min_investment: 700, max_investment: 700, daily_income: 204, duration: 180, image: '/logo.png', status: true },
+  { name: 'Raven Z8 Ultra', category: 'VIP Series', min_investment: 1500, max_investment: 1500, daily_income: 390, duration: 180, image: '/logo.png', status: true },
+  { name: 'Raven H4 Pro', category: 'VIP Series', min_investment: 3500, max_investment: 3500, daily_income: 795, duration: 180, image: '/logo.png', status: true },
+  { name: 'Raven H8 Max', category: 'VIP Series', min_investment: 7000, max_investment: 7000, daily_income: 1620, duration: 180, image: '/logo.png', status: true },
+  { name: 'Raven H9 Ultra', category: 'VIP Series', min_investment: 15000, max_investment: 15000, daily_income: 3360, duration: 180, image: '/logo.png', status: true },
+  { name: 'Raven T7', category: 'VIP Series', min_investment: 30000, max_investment: 30000, daily_income: 7500, duration: 180, image: '/logo.png', status: true },
+  { name: 'Raven T10 Pro', category: 'VIP Series', min_investment: 50000, max_investment: 50000, daily_income: 20000, duration: 180, image: '/logo.png', status: true },
+  { name: 'Special Activity Pack', category: 'Activity Series', min_investment: 500, max_investment: 500, daily_income: 150, duration: 30, image: '/logo.png', status: true },
+  { name: 'Event Bonus Projector', category: 'Activity Series', min_investment: 2000, max_investment: 2000, daily_income: 600, duration: 45, image: '/logo.png', status: true }
 ];
 
 export async function runSeed() {
@@ -114,6 +116,7 @@ export async function runSeed() {
       await prisma.plans.update({
         where: { id: existingPlan.id },
         data: {
+          category: plan.category || 'VIP Series',
           daily_income: plan.daily_income,
           duration: plan.duration,
           min_investment: plan.min_investment,

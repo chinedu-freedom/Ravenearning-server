@@ -97,6 +97,7 @@ model plans {
   image             String?
   name              String
   description       String?
+  category          String?  @default("VIP Series")
   duration          Int      // in days
   daily_income      Decimal  @db.Decimal(18, 8)
   min_investment    Decimal  @db.Decimal(18, 8)
