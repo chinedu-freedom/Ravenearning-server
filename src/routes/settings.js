@@ -7,30 +7,7 @@ const prisma = new PrismaClient();
 // Get public settings (like contact links, etc)
 router.get(['/', '/public'], async (req, res) => {
   try {
-    const settings = await prisma.settings.findFirst({
-      select: {
-        site_name: true,
-        site_title: true,
-        currency_symbol: true,
-        currency_name: true,
-        timezone: true,
-        platform_logo: true,
-        telegram_support: true,
-        whatsapp_support: true,
-        telegram_community: true,
-        telegram_group: true,
-        whatsapp_group: true,
-        deposit_notice: true,
-        withdrawal_notice: true,
-        min_withdrawal: true,
-        max_withdrawal: true,
-        withdrawal_charge: true,
-        min_deposit: true,
-        max_deposit: true,
-        deposit_charge: true,
-        live_market_enabled: true
-      }
-    });
+    const settings = await prisma.settings.findFirst();
     
     if (settings && !settings.platform_logo) {
       settings.platform_logo = "/logo.jpeg";
