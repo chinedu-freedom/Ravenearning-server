@@ -1536,6 +1536,27 @@ router.post('/withdraw', authenticate, async (req, res) => {
       return res.status(400).json({ success: false, message: `Maximum withdrawal amount is ${symbol}${maxAmount.toLocaleString()}` });
     }
 
+    // Enforce Withdrawal Opening and Closing Time Window
+    const openTime = (settings?.withdrawal_open_time || '').trim();
+    const closeTime = (settings?.withdrawal_close_time || '').trim();
+    if (openTime && closeTime) {
+      const now = new Date();
+      const currentHours = String(now.getHours()).padStart(2, '0');
+      const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+      const currentTimeStr = `${currentHours}:${currentMinutes}`;
+
+      const isOpen = (openTime <= closeTime)
+        ? (currentTimeStr >= openTime && currentTimeStr <= closeTime)
+        : (currentTimeStr >= openTime || currentTimeStr <= closeTime);
+
+      if (!isOpen) {
+        return res.status(400).json({
+          success: false,
+          message: `Withdrawals are currently closed. Withdrawal operating hours are between ${openTime} and ${closeTime}.`
+        });
+      }
+    }
+
     const user = await prisma.users.findUnique({ where: { id: userId } });
 
     if (!user) {
