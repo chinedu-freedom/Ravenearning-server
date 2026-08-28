@@ -115,7 +115,8 @@ router.get('/platform', async (req, res) => {
         }
       });
     }
-    res.json(settings || {});
+    const result = settings ? settings.toJSON ? settings.toJSON() : JSON.parse(JSON.stringify(settings)) : {};
+    res.json({ success: true, settings, ...result });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch platform settings' });
   }
@@ -142,6 +143,10 @@ router.put('/platform', async (req, res) => {
       if (req.body[key] !== undefined) {
         cleanData[key] = req.body[key];
       }
+    }
+
+    if (req.body.activity_series_enabled !== undefined) {
+      cleanData.activity_series_enabled = Boolean(req.body.activity_series_enabled);
     }
 
     if (settings) {
