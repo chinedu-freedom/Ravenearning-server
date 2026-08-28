@@ -652,10 +652,10 @@ router.get('/team', authenticate, async (req, res) => {
       });
     }
 
-    // Count Valid members (those with at least one investment)
-    const l1Valid = level1Users.filter(u => u.investments.length > 0).length;
-    const l2Valid = level2Users.filter(u => u.investments.length > 0).length;
-    const l3Valid = level3Users.filter(u => u.investments.length > 0).length;
+    // Count Valid/Active members (those with at least one investment or approved deposit)
+    const l1Valid = level1Users.filter(u => u.investments?.length > 0 || u.deposits?.some(d => d.status === 'approved')).length;
+    const l2Valid = level2Users.filter(u => u.investments?.length > 0 || u.deposits?.some(d => d.status === 'approved')).length;
+    const l3Valid = level3Users.filter(u => u.investments?.length > 0 || u.deposits?.some(d => d.status === 'approved')).length;
 
     // Calculate Total Deposits per level
     const calcDeposits = (users) => users.reduce((acc, user) => {
