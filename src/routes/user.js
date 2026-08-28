@@ -1536,6 +1536,16 @@ router.post('/withdraw', authenticate, async (req, res) => {
       return res.status(400).json({ success: false, message: `Maximum withdrawal amount is ${symbol}${maxAmount.toLocaleString()}` });
     }
 
+    // Block Weekend Withdrawals (Saturday = 6, Sunday = 0)
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Withdrawals are closed on weekends (Saturday and Sunday). Please submit your withdrawal request between Monday and Friday.'
+      });
+    }
+
     // Enforce Withdrawal Opening and Closing Time Window
     const openTime = (settings?.withdrawal_open_time || '').trim();
     const closeTime = (settings?.withdrawal_close_time || '').trim();

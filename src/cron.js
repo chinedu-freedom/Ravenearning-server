@@ -1,10 +1,18 @@
-﻿import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 // Process daily profit payouts for active investments
 const runProfitPayouts = async () => {
   try {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+
+    // Skip daily profit payouts on Sunday (0 = Sunday)
+    if (dayOfWeek === 0) {
+      return;
+    }
+
     const activeInvestments = await prisma.investments.findMany({
       where: {
         status: 'ACTIVE'
@@ -20,7 +28,7 @@ const runProfitPayouts = async () => {
       }
     });
 
-    const now = new Date();
+    const settings = await prisma.settings.findFirst();
 
     for (const inv of activeInvestments) {
       // Find the last payout date, or fallback to start_date
@@ -67,7 +75,7 @@ const runProfitPayouts = async () => {
             data: { withdrawable_balance: newBalance }
           });
 
-          // Log the transaction
+          // Log the profit transaction
           await prisma.transactions.create({
             data: {
               user_id: inv.user_id,
@@ -79,6 +87,61 @@ const runProfitPayouts = async () => {
               reference_id: inv.id
             }
           });
+
+          // --- Distribute Team Daily Rebates to Uplines (Level 1, 2, 3) ---
+          if (settings) {
+            let currentDownline = user;
+            const rebateLevels = [
+              { rate: Number(settings.level1_commission || 30) },
+              { rate: Number(settings.level2_commission || 10) },
+              { rate: Number(settings.level3_commission || 5) }
+            ];
+
+            for (let lvl = 0; lvl < rebateLevels.length; lvl++) {
+              if (!currentDownline || !currentDownline.referred_by || rebateLevels[lvl].rate <= 0) break;
+
+              const referrerId = currentDownline.referred_by;
+              const referrer = await prisma.users.findUnique({ where: { id: referrerId } });
+              if (!referrer) break;
+
+              const rebateAmount = Number((profitAmount * (rebateLevels[lvl].rate / 100)).toFixed(2));
+              if (rebateAmount > 0) {
+                const oldBal = Number(referrer.withdrawable_balance || 0);
+                const newBal = oldBal + rebateAmount;
+
+                await prisma.users.update({
+                  where: { id: referrerId },
+                  data: { withdrawable_balance: newBal }
+                });
+
+                // Log referral commission audit record
+                await prisma.referral_commissions.create({
+                  data: {
+                    user_id: referrerId,
+                    from_user_id: inv.user_id,
+                    amount: rebateAmount,
+                    level: lvl + 1,
+                    description: `Daily Team Rebate (Level ${lvl + 1}) from ${user.phone || user.username || 'Downline'}'s daily profit payout`
+                  }
+                }).catch(() => {});
+
+                // Log transaction for referrer
+                await prisma.transactions.create({
+                  data: {
+                    user_id: referrerId,
+                    type: 'referral_commission',
+                    amount: rebateAmount,
+                    balance_before: oldBal,
+                    balance_after: newBal,
+                    description: `Daily Team Rebate (Level ${lvl + 1}) from ${user.phone || user.username || 'Downline'} payout`,
+                    reference_id: inv.id
+                  }
+                });
+              }
+
+              currentDownline = referrer;
+            }
+          }
 
           // Update investment paid amounts
           const totalPaidStr = (parseFloat(currentTotalPaid.total_paid) + profitAmount).toFixed(8);
