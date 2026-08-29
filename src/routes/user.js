@@ -1428,16 +1428,28 @@ router.post('/deposit', authenticate, async (req, res) => {
     const chargePercent = Number(settings?.deposit_charge || 0);
     const totalAmount = Number(amount) * (1 + chargePercent / 100);
 
+    const isManualUsdt = paymentMethod === 'USDT (Manual)' || paymentMethod?.includes('USDT') || req.body.proof_image_url || req.body.tx_hash;
+
     const deposit = await prisma.deposits.create({
       data: {
         user_id: userId,
         amount: Number(amount),
         cryptocurrency: cryptoLabel,
         status: 'PENDING',
+        proof_image_url: req.body.proof_image_url || null,
+        tx_hash: req.body.tx_hash || null
       }
     });
 
     await logActivity(userId, 'deposit initiated', req, { amount, cryptocurrency: cryptoLabel });
+
+    if (isManualUsdt) {
+      return res.json({
+        success: true,
+        message: 'USDT Deposit submitted successfully. Your account will be credited once verified by Admin.',
+        deposit
+      });
+    }
 
     // Check if Quick Pay automatic gateway is enabled
     const merchantId = process.env.QUICKPAY_MERCHANT || settings?.quickpay_merchant;
