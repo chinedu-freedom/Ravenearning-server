@@ -99,35 +99,17 @@ export async function runSeed() {
   }
 
   // 3. VIP Investment Plans
-  for (const plan of vipPlans) {
-    const existingPlan = await prisma.plans.findFirst({
-      where: {
-        OR: [
-          { min_investment: plan.min_investment },
-          { name: plan.name }
-        ]
-      }
-    });
-
-    if (existingPlan) {
-      await prisma.plans.update({
-        where: { id: existingPlan.id },
-        data: {
-          category: plan.category || 'VIP Series',
-          daily_income: plan.daily_income,
-          duration: plan.duration,
-          min_investment: plan.min_investment,
-          max_investment: plan.max_investment,
-          status: true
-        }
-      });
-    } else {
+  const existingPlansCount = await prisma.plans.count();
+  if (existingPlansCount === 0) {
+    for (const plan of vipPlans) {
       await prisma.plans.create({
         data: plan
       });
     }
+    console.log(`Seeded ${vipPlans.length} initial investment packages`);
+  } else {
+    console.log('Investment plans already initialized, preserving admin modifications.');
   }
-  console.log(`Seeded ${vipPlans.length} VIP investment packages`);
 
   console.log('Database initialization completed successfully!');
 }
