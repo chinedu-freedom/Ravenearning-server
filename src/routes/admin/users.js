@@ -217,26 +217,37 @@ router.delete('/:id', async (req, res) => {
       return res.json({ success: true, message: 'User already deleted' });
     }
     
-    // Nullify referrals
-    await prisma.users.updateMany({ where: { referred_by: userId }, data: { referred_by: null } });
+    // Helper to safely delete records from Prisma models if they exist
+    const safeDelete = async (modelName, whereCondition) => {
+      try {
+        if (prisma[modelName] && typeof prisma[modelName].deleteMany === 'function') {
+          await prisma[modelName].deleteMany({ where: whereCondition });
+        }
+      } catch (err) {
+        console.warn(`[Delete User Warning] Failed to delete from ${modelName}:`, err.message);
+      }
+    };
 
-    // Manual cascade delete
-    await prisma.investment_profits.deleteMany({ where: { user_id: userId } });
-    await prisma.transactions.deleteMany({ where: { user_id: userId } });
-    await prisma.investments.deleteMany({ where: { user_id: userId } });
-    await prisma.deposits.deleteMany({ where: { user_id: userId } });
-    await prisma.withdrawals.deleteMany({ where: { user_id: userId } });
-    await prisma.spin_logs.deleteMany({ where: { user_id: userId } });
-    await prisma.user_checkins.deleteMany({ where: { user_id: userId } });
-    await prisma.task_claims.deleteMany({ where: { user_id: userId } });
-    await prisma.gift_code_claims.deleteMany({ where: { user_id: userId } });
-    await prisma.referral_commissions.deleteMany({ where: { OR: [{ user_id: userId }, { from_user_id: userId }] } });
-    await prisma.activity_logs.deleteMany({ where: { user_id: userId } });
-    await prisma.email_logs.deleteMany({ where: { user_id: userId } });
-    await prisma.user_spins.deleteMany({ where: { user_id: userId } });
-    await prisma.password_resets.deleteMany({ where: { user_id: userId } });
+    // 1. Nullify referrals where this user is the sponsor
+    try {
+      await prisma.users.updateMany({ where: { referred_by: userId }, data: { referred_by: null } });
+    } catch (e) {}
+
+    // 2. Cascade delete all child records safely
+    await safeDelete('investment_profits', { user_id: userId });
+    await safeDelete('transactions', { user_id: userId });
+    await safeDelete('investments', { user_id: userId });
+    await safeDelete('deposits', { user_id: userId });
+    await safeDelete('withdrawals', { user_id: userId });
+    await safeDelete('spin_logs', { user_id: userId });
+    await safeDelete('user_checkins', { user_id: userId });
+    await safeDelete('task_claims', { user_id: userId });
+    await safeDelete('gift_code_claims', { user_id: userId });
+    await safeDelete('referral_commissions', { OR: [{ user_id: userId }, { from_user_id: userId }] });
+    await safeDelete('user_spins', { user_id: userId });
+    await safeDelete('password_resets', { user_id: userId });
     
-    // Finally, delete the user
+    // 3. Finally, delete the user
     await prisma.users.delete({
       where: { id: userId }
     });
@@ -246,6 +257,7 @@ router.delete('/:id', async (req, res) => {
     if (error.code === 'P2025' || error.message?.includes('Record to delete does not exist') || error.message?.includes('not found')) {
       return res.json({ success: true, message: 'User deleted successfully' });
     }
+    console.error('Failed to delete user:', error);
     res.status(500).json({ error: 'Failed to delete user', details: error.message });
   }
 });
