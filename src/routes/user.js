@@ -135,7 +135,13 @@ router.get('/me', authenticate, async (req, res) => {
         language: { language_name: 'English', language_code: 'en' },
         referral_code: referralCode,
         has_withdrawal_pin: !!user.withdrawal_pin,
-        bank_details: bankDetails,
+        bank_details: {
+          account_name: user.bank_account_name,
+          bank_name: user.bank_name,
+          account_number: user.bank_account_number,
+          usdt_address: user.usdt_address,
+          usdt_network: user.usdt_network || 'TRC20'
+        },
         email_verified: user.email_verified,
         created_at: user.created_at,
         statistics: {
@@ -152,18 +158,14 @@ router.get('/me', authenticate, async (req, res) => {
   }
 });
 
-// Post bank details
+// Post bank / usdt wallet details
 router.post('/bank-details', authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { account_name, bank_name, account_number, password } = req.body;
-
-    if (!account_name || !bank_name || !account_number) {
-      return res.status(400).json({ success: false, message: 'All bank details are required' });
-    }
+    const { wallet_type, account_name, bank_name, account_number, usdt_address, usdt_network, password } = req.body;
 
     if (!password) {
-      return res.status(400).json({ success: false, message: 'Withdrawal password is required to link bank account' });
+      return res.status(400).json({ success: false, message: 'Withdrawal password is required to save wallet details' });
     }
 
     const user = await prisma.users.findUnique({ where: { id: userId } });
@@ -183,6 +185,30 @@ router.post('/bank-details', authenticate, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Incorrect withdrawal password' });
     }
 
+    if (wallet_type === 'usdt' || usdt_address) {
+      if (!usdt_address) {
+        return res.status(400).json({ success: false, message: 'USDT wallet address is required' });
+      }
+
+      await prisma.users.update({
+        where: { id: userId },
+        data: {
+          usdt_address: usdt_address.trim(),
+          usdt_network: (usdt_network || 'TRC20').trim()
+        }
+      });
+
+      return res.json({
+        success: true,
+        message: 'USDT Wallet linked successfully',
+        usdt_details: { usdt_address: usdt_address.trim(), usdt_network: (usdt_network || 'TRC20').trim() }
+      });
+    }
+
+    if (!account_name || !bank_name || !account_number) {
+      return res.status(400).json({ success: false, message: 'All bank details are required' });
+    }
+
     await prisma.users.update({
       where: { id: userId },
       data: {
@@ -199,7 +225,7 @@ router.post('/bank-details', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Save bank details error:', error);
-    res.status(500).json({ success: false, message: 'Failed to link bank details' });
+    res.status(500).json({ success: false, message: 'Failed to link wallet details' });
   }
 });
 
@@ -1623,8 +1649,19 @@ router.post('/withdraw', authenticate, async (req, res) => {
     const fees = Number(amount) * feeRate;
     const netAmount = Number(amount) - fees;
 
-    const destAddress = wallet_address || (account_number ? `${bank_name || 'Bank'}: ${account_number} (${account_name || ''})` : 'Direct Bank Transfer');
-    const withdrawMethod = method || (bank_name ? `Bank Transfer (${bank_name})` : 'Bank Transfer');
+    let destAddress = wallet_address;
+    let withdrawMethod = method;
+
+    if (method === 'USDT' || wallet_address?.startsWith('T') || wallet_address?.startsWith('0x')) {
+      destAddress = wallet_address || user.usdt_address || 'USDT Wallet';
+      withdrawMethod = `USDT (${user.usdt_network || 'TRC20'})`;
+    } else {
+      const bName = bank_name || user.bank_name || 'Bank';
+      const bAcc = account_number || user.bank_account_number || '';
+      const bNameHolder = account_name || user.bank_account_name || '';
+      destAddress = wallet_address || `${bName}: ${bAcc} (${bNameHolder})`;
+      withdrawMethod = method || `Bank Transfer (${bName})`;
+    }
 
     let withdrawalResult;
     await prisma.$transaction(async (tx) => {

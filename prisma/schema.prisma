@@ -40,6 +40,8 @@ model users {
   bank_account_name String?
   bank_name        String?
   bank_account_number String?
+  usdt_address     String?
+  usdt_network     String?
   balance          Decimal   @default(0) @db.Decimal(18, 8)
   withdrawable_balance Decimal @default(0) @db.Decimal(18, 8)
   gift_balance     Decimal   @default(0) @db.Decimal(18, 8)
