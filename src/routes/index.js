@@ -52,7 +52,7 @@ const handleDepositWebhook = async (req, res) => {
           await tx.deposits.update({
             where: { id: deposit.id },
             data: {
-              status: 'approved',
+              status: 'APPROVED',
               approved_at: new Date()
             }
           });

@@ -1,4 +1,24 @@
-import { Router } from 'express';
+import fs from 'fs';
+
+// 1. Update omni-backend/src/routes/user.js
+const userFile = 'C:\\Users\\Spark.DESKTOP-F75SGV0\\Desktop\\omni-backend\\src\\routes\\user.js';
+let userContent = fs.readFileSync(userFile, 'utf8');
+
+// Replace strict uppercase status: 'APPROVED' with case-insensitive list for deposits and withdrawals
+userContent = userContent.replaceAll("status: 'APPROVED'", "status: { in: ['APPROVED', 'approved', 'SUCCESS', 'success'] }");
+userContent = userContent.replaceAll("status: 'approved'", "status: { in: ['APPROVED', 'approved', 'SUCCESS', 'success'] }");
+
+// Normalize deposit creation status when webhook auto-approves
+userContent = userContent.replaceAll("status: 'approved'", "status: 'APPROVED'");
+
+fs.writeFileSync(userFile, userContent, 'utf8');
+console.log('✅ Standardized routes/user.js to case-insensitively match all APPROVED/approved deposits and withdrawals for user stats!');
+
+// 2. Update omni-backend/src/routes/admin/dashboard.js
+const adminDashFile = 'C:\\Users\\Spark.DESKTOP-F75SGV0\\Desktop\\omni-backend\\src\\routes\\admin\\dashboard.js';
+let adminDashContent = fs.readFileSync(adminDashFile, 'utf8');
+
+const updatedAdminDashCode = `import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 
 const router = Router();
@@ -138,4 +158,34 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-export default router;
+export default router;`;
+
+fs.writeFileSync(adminDashFile, updatedAdminDashCode, 'utf8');
+console.log('✅ Enhanced routes/admin/dashboard.js with case-insensitive aggregation for deposit/withdrawal stats!');
+
+// 3. Update omni-backend/src/routes/index.js to always save 'APPROVED' in uppercase
+const indexFile = 'C:\\Users\\Spark.DESKTOP-F75SGV0\\Desktop\\omni-backend\\src\\routes\\index.js';
+let indexContent = fs.readFileSync(indexFile, 'utf8');
+indexContent = indexContent.replaceAll("status: 'approved'", "status: 'APPROVED'");
+fs.writeFileSync(indexFile, indexContent, 'utf8');
+console.log('✅ Updated routes/index.js to set status: APPROVED in uppercase!');
+
+// 4. Update existing lowercase 'approved' deposits in database to uppercase 'APPROVED'
+const normalizeScript = `import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
+async function normalizeDB() {
+  await prisma.deposits.updateMany({
+    where: { status: 'approved' },
+    data: { status: 'APPROVED' }
+  });
+  await prisma.withdrawals.updateMany({
+    where: { status: 'approved' },
+    data: { status: 'APPROVED' }
+  });
+  console.log('✅ All existing DB records normalized to uppercase APPROVED!');
+  await prisma.$disconnect();
+}
+normalizeDB();`;
+
+fs.writeFileSync('C:\\Users\\Spark.DESKTOP-F75SGV0\\Desktop\\omni-backend\\src\\normalize_db_statuses.js', normalizeScript, 'utf8');
+console.log('✅ Created normalize_db_statuses.js script!');

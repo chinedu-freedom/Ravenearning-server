@@ -1,0 +1,29 @@
+import fs from 'fs';
+import path from 'path';
+
+function searchBackend(dirPath) {
+  const files = fs.readdirSync(dirPath);
+  for (const f of files) {
+    const fullPath = path.join(dirPath, f);
+    const stat = fs.statSync(fullPath);
+    if (stat.isDirectory()) {
+      if (!f.includes('node_modules') && !f.includes('.git')) {
+        searchBackend(fullPath);
+      }
+    } else if (f.endsWith('.js')) {
+      const content = fs.readFileSync(fullPath, 'utf8');
+      if (content.includes('status:') || content.includes('status =') || content.includes('APPROVED') || content.includes('approved')) {
+        const lines = content.split('\n');
+        lines.forEach((l, idx) => {
+          if (l.includes('deposits') || l.includes('withdrawals') || l.includes('status')) {
+            if (l.includes('APPROVED') || l.includes('approved') || l.includes('PENDING') || l.includes('pending') || l.includes('sum')) {
+              console.log(`${fullPath}:${idx + 1} -> ${l.trim()}`);
+            }
+          }
+        });
+      }
+    }
+  }
+}
+
+searchBackend('C:\\Users\\Spark.DESKTOP-F75SGV0\\Desktop\\omni-backend\\src');

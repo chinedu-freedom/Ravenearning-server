@@ -56,12 +56,12 @@ router.get('/me', authenticate, async (req, res) => {
 
     const depositsAggr = await prisma.deposits.aggregate({
       _sum: { amount: true },
-      where: { user_id: req.user.id, status: 'APPROVED' }
+      where: { user_id: req.user.id, status: { in: ['APPROVED', 'approved', 'SUCCESS', 'success'] } }
     });
 
     const withdrawalsAggr = await prisma.withdrawals.aggregate({
       _sum: { amount: true },
-      where: { user_id: req.user.id, status: 'APPROVED' }
+      where: { user_id: req.user.id, status: { in: ['APPROVED', 'approved', 'SUCCESS', 'success'] } }
     });
 
     const userTransactions = await prisma.transactions.findMany({
