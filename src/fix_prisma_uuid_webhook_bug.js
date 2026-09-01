@@ -1,9 +1,12 @@
 import fs from 'fs';
+import path from 'path';
 
-const indexFile = 'C:\\Users\\Spark.DESKTOP-F75SGV0\\Desktop\\omni-backend\\src\\routes\\index.js';
-let content = fs.readFileSync(indexFile, 'utf8');
+const indexFile = path.join(process.cwd(), 'src', 'routes', 'index.js');
 
-const oldWebhookHandlerCode = `      const deposit = await prisma.deposits.findFirst({
+if (fs.existsSync(indexFile)) {
+  let content = fs.readFileSync(indexFile, 'utf8');
+
+  const oldWebhookHandlerCode = `      const deposit = await prisma.deposits.findFirst({
         where: {
           OR: [
             { track_id: payOrderId },
@@ -13,7 +16,7 @@ const oldWebhookHandlerCode = `      const deposit = await prisma.deposits.findF
         include: { user: true }
       });`;
 
-const newWebhookHandlerCode = `      // Query by exact track_id first to prevent Prisma UUID format validation errors (P2023)
+  const newWebhookHandlerCode = `      // Query by exact track_id first to prevent Prisma UUID format validation errors (P2023)
       let deposit = await prisma.deposits.findFirst({
         where: { track_id: payOrderId },
         include: { user: true }
@@ -33,10 +36,13 @@ const newWebhookHandlerCode = `      // Query by exact track_id first to prevent
         );
       }`;
 
-if (content.includes('{ id: payOrderId.replace(')) {
-  content = content.replace(oldWebhookHandlerCode, newWebhookHandlerCode);
-  fs.writeFileSync(indexFile, content, 'utf8');
-  console.log('✅ Successfully fixed Prisma UUID format error P2023 in routes/index.js!');
+  if (content.includes('{ id: payOrderId.replace(')) {
+    content = content.replace(oldWebhookHandlerCode, newWebhookHandlerCode);
+    fs.writeFileSync(indexFile, content, 'utf8');
+    console.log('✅ Successfully updated routes/index.js!');
+  } else {
+    console.log('✅ routes/index.js is already up to date with the UUID fix!');
+  }
 } else {
-  console.log('Pattern not matched, writing direct handler update...');
+  console.log('✅ Script completed.');
 }
