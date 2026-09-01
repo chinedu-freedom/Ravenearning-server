@@ -152,7 +152,7 @@ router.post('/invest', authenticate, async (req, res) => {
         }
       });
       
-      // Distribute referral commissions (up to 3 levels)
+      // Distribute Rebate Commissions (up to 3 levels)
       const settings = await tx.settings.findFirst();
       if (settings) {
         let currentUser = user;
@@ -194,7 +194,7 @@ router.post('/invest', authenticate, async (req, res) => {
               amount: commissionAmount,
               balance_before: Number(referrer.withdrawable_balance || 0),
               balance_after: newReferrerBalance,
-              description: `Level ${i + 1} referral commission from ${user.username || user.full_name}`
+              description: `Level ${i + 1} Rebate Commission from ${user.username || user.full_name}`
             }
           });
           
