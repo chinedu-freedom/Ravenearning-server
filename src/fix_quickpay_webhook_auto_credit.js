@@ -1,25 +1,28 @@
 import fs from 'fs';
+import path from 'path';
 
-// 1. Update omni-backend/src/routes/user.js to compute notifyUrl dynamically from req
-const userFile = 'C:\\Users\\Spark.DESKTOP-F75SGV0\\Desktop\\omni-backend\\src\\routes\\user.js';
-let userContent = fs.readFileSync(userFile, 'utf8');
+// Cross-platform resolution of user.js and index.js relative to process.cwd()
+const userFile = path.join(process.cwd(), 'src', 'routes', 'user.js');
+const indexFile = path.join(process.cwd(), 'src', 'routes', 'index.js');
 
-const targetNotifyCode = `const notifyUrl = \`\${process.env.BACKEND_URL || 'https://ravenearning-server.onrender.com'}/api/quickpay-webhook\`;`;
-
-const fixedNotifyCode = `const host = req.get('host');
+if (fs.existsSync(userFile)) {
+  let userContent = fs.readFileSync(userFile, 'utf8');
+  const targetNotifyCode = `const notifyUrl = \`\${process.env.BACKEND_URL || 'https://ravenearning-server.onrender.com'}/api/quickpay-webhook\`;`;
+  const fixedNotifyCode = `const host = req.get('host');
         const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
         const serverBaseUrl = process.env.BACKEND_URL || settings?.backend_url || \`\${protocol}://\${host}\`;
         const notifyUrl = \`\${serverBaseUrl}/api/quickpay-webhook\`;`;
 
-userContent = userContent.replace(targetNotifyCode, fixedNotifyCode);
-fs.writeFileSync(userFile, userContent, 'utf8');
-console.log('✅ Fixed user.js: Dynamic notifyUrl now points to live VPS domain/IP!');
+  if (userContent.includes(targetNotifyCode)) {
+    userContent = userContent.replace(targetNotifyCode, fixedNotifyCode);
+    fs.writeFileSync(userFile, userContent, 'utf8');
+    console.log('✅ Updated src/routes/user.js with dynamic VPS server base URL!');
+  }
+}
 
-// 2. Enhance omni-backend/src/routes/index.js to handle QuickPay callback format robustly
-const indexFile = 'C:\\Users\\Spark.DESKTOP-F75SGV0\\Desktop\\omni-backend\\src\\routes\\index.js';
-let indexContent = fs.readFileSync(indexFile, 'utf8');
-
-const updatedWebhookHandler = `// Quick Pay Gateway Webhook Callback Handler (Deposit)
+if (fs.existsSync(indexFile)) {
+  let indexContent = fs.readFileSync(indexFile, 'utf8');
+  const updatedWebhookHandler = `// Quick Pay Gateway Webhook Callback Handler (Deposit)
 const handleDepositWebhook = async (req, res) => {
   try {
     const payload = req.body || req.query || {};
@@ -33,7 +36,6 @@ const handleDepositWebhook = async (req, res) => {
     const isSuccess = tradeState === 'SUCCESS' || tradeState === '1' || tradeState === '00' || tradeState === 'OK' || tradeState === 'APPROVED' || tradeState === '200';
 
     if (isSuccess && payOrderId) {
-      // Find matching deposit record by track_id or deposit ID
       const deposit = await prisma.deposits.findFirst({
         where: {
           OR: [
@@ -93,10 +95,14 @@ router.get('/quickpay-webhook', handleDepositWebhook);
 router.post('/api/quickpay-webhook', handleDepositWebhook);
 router.get('/api/quickpay-webhook', handleDepositWebhook);`;
 
-indexContent = indexContent.replace(
-  /\/\/ Quick Pay Gateway Webhook Callback Handler[\s\S]*?router\.get\('\/api\/quickpay-webhook', handleDepositWebhook\);/,
-  updatedWebhookHandler
-);
+  if (indexContent.includes('handleDepositWebhook')) {
+    indexContent = indexContent.replace(
+      /\/\/ Quick Pay Gateway Webhook Callback Handler[\s\S]*?router\.get\('\/api\/quickpay-webhook', handleDepositWebhook\);/,
+      updatedWebhookHandler
+    );
+    fs.writeFileSync(indexFile, indexContent, 'utf8');
+    console.log('✅ Updated src/routes/index.js with robust webhook callback listener!');
+  }
+}
 
-fs.writeFileSync(indexFile, indexContent, 'utf8');
-console.log('✅ Enhanced routes/index.js: Robust webhook listener supporting all QuickPay callback payload formats!');
+console.log('✅ Helper script executed cleanly!');
