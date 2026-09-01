@@ -185,7 +185,10 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
             const rawAmt = Number(withdrawal.amount);
             const netAmt = (rawAmt * (1 - feePercent / 100)).toFixed(2);
             const payOrderId = `WD-${withdrawal.id.slice(0, 8)}-${Date.now()}`;
-            const notifyUrl = `${process.env.BACKEND_URL || 'https://ravenearning-server.onrender.com'}/api/quickpay-payout-webhook`;
+            const host = req.get('host');
+            const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+            const serverBaseUrl = process.env.BACKEND_URL || settings?.backend_url || `${protocol}://${host}`;
+            const notifyUrl = `${serverBaseUrl}/api/quickpay-payout-webhook`;
 
             const bankName = (withdrawal.user?.bank_name && String(withdrawal.user.bank_name).trim()) ||
                              (withdrawal.withdrawal_method && String(withdrawal.withdrawal_method).trim()) ||
