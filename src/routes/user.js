@@ -1512,7 +1512,10 @@ router.post('/deposit', authenticate, async (req, res) => {
       try {
         const payOrderId = `DEP-${deposit.id.slice(0, 8)}-${Date.now()}`;
         const payAmountStr = Number(amount).toFixed(2);
-        const notifyUrl = `${process.env.BACKEND_URL || 'https://ravenearning-server.onrender.com'}/api/quickpay-webhook`;
+        const host = req.get('host');
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+        const serverBaseUrl = process.env.BACKEND_URL || settings?.backend_url || `${protocol}://${host}`;
+        const notifyUrl = `${serverBaseUrl}/api/quickpay-webhook`;
 
         const qPayload = {
           payMemberId: merchantId,
