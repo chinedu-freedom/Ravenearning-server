@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { sendDepositNotificationEmail, sendWithdrawalNotificationEmail } from '../../lib/mailer.js';
+// Email notifications disabled
 import { logActivity } from '../../lib/logger.js';
 import { buildQuickPaySign, buildQuickPayDrawSign, getQuickPayFormattedTime } from '../../lib/quickpay.js';
 import { cleanPhoneNumber } from '../../lib/phone.js';
@@ -80,18 +80,7 @@ router.put('/deposits/:id/status', async (req, res) => {
     }
 
     // Send email notification to user
-    try {
-      await sendDepositNotificationEmail({
-        email: deposit.user.email,
-        name: deposit.user.full_name || deposit.user.phone || 'User',
-        crypto: deposit.cryptocurrency,
-        amount: Number(deposit.amount),
-        status: status.toLowerCase(),
-        date: new Date()
-      });
-    } catch (err) {
-      console.error('Failed to send deposit status email:', err);
-    }
+    // Email disabled
 
     res.json(updatedDeposit);
   } catch (error) {
@@ -177,21 +166,7 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
     }
 
     // Send status notification email
-    try {
-      if (withdrawal.user?.email) {
-        await sendWithdrawalNotificationEmail({
-          email: withdrawal.user.email,
-          name: withdrawal.user.full_name || withdrawal.user.username || 'User',
-          crypto: withdrawal.withdrawal_method || 'Bank Transfer',
-          amount: Number(withdrawal.amount),
-          walletAddress: withdrawal.wallet_address || '',
-          status: isApproved ? 'approved' : 'rejected',
-          date: new Date()
-        });
-      }
-    } catch (err) {
-      console.error('Failed to send withdrawal status email:', err);
-    }
+    // Email disabled
 
     return res.json({
       success: true,

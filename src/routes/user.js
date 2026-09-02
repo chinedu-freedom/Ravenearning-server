@@ -2,12 +2,7 @@ import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate } from '../middleware/auth.js';
 import bcrypt from 'bcrypt';
-import {
-  sendVerificationEmail,
-  sendDepositNotificationEmail,
-  sendWithdrawalNotificationEmail,
-  sendPasswordChangeConfirmationEmail
-} from '../lib/mailer.js';
+// Email notifications disabled
 import { logActivity } from '../lib/logger.js';
 import { cleanPhoneNumber } from '../lib/phone.js';
 
@@ -879,11 +874,7 @@ router.put('/me/password', authenticate, async (req, res) => {
       data: { password_hash: hash }
     });
 
-    try {
-      await sendPasswordChangeConfirmationEmail(req.user.email, req.user.full_name || req.user.username || 'User');
-    } catch (err) {
-      console.error('Failed to send password change confirmation email:', err);
-    }
+    // Email disabled
 
     await logActivity(req.user.id, 'profile updated', req, { description: 'Updated password' });
 
@@ -1734,19 +1725,7 @@ router.post('/withdraw', authenticate, async (req, res) => {
     await logActivity(userId, 'withdrawal requested', req, { amount, fees, net_amount: netAmount, destination: destAddress });
 
     // Send withdrawal notification email
-    try {
-      await sendWithdrawalNotificationEmail({
-        email: req.user.email,
-        name: req.user.full_name || req.user.username || 'User',
-        crypto: withdrawMethod,
-        amount: Number(amount),
-        walletAddress: destAddress,
-        status: 'pending',
-        date: new Date()
-      });
-    } catch (e) {
-      console.warn('Withdrawal email failed:', e.message);
-    }
+    // Email disabled
 
     return res.json({
       success: true,
