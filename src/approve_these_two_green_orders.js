@@ -1,11 +1,15 @@
-import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
+
+const syncFile = 'C:\\Users\\Spark.DESKTOP-F75SGV0\\Desktop\\omni-backend\\src\\sync_vps_quickpay_deposits.js';
+
+const updatedSyncContent = `import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function syncVpsQuickPayDeposits() {
   console.log('====================================================');
   console.log('⚡ SYNCING THE 2 CONFIRMED GREEN QUICKPAY DEPOSITS ON VPS');
-  console.log('====================================================\n');
+  console.log('====================================================\\n');
 
   const targetDepositIds = [
     '667988a5-5b88-40ce-ba27-082a96d59f5c', // R350 (DEP-667988a5-1788338074645 - User: 680315159)
@@ -19,12 +23,12 @@ async function syncVpsQuickPayDeposits() {
     });
 
     if (!deposit) {
-      console.log(`❌ Deposit ${depId} not found in database.`);
+      console.log(\`❌ Deposit \${depId} not found in database.\`);
       continue;
     }
 
     if (deposit.status === 'APPROVED') {
-      console.log(`ℹ️ Deposit ${deposit.id} is already APPROVED.`);
+      console.log(\`ℹ️ Deposit \${deposit.id} is already APPROVED.\`);
       continue;
     }
 
@@ -57,11 +61,11 @@ async function syncVpsQuickPayDeposits() {
           amount: amount,
           balance_before: oldBal,
           balance_after: newBal,
-          description: `QuickPay Auto Deposit Approved (R${amount})`
+          description: \`QuickPay Auto Deposit Approved (R\${amount})\`
         }
       });
 
-      console.log(`✅ Approved Deposit ${deposit.id} for R${amount} -> User Phone: ${deposit.user.phone || deposit.user.email}`);
+      console.log(\`✅ Approved Deposit \${deposit.id} for R\${amount} -> User Phone: \${deposit.user.phone || deposit.user.email}\`);
     });
   }
 
@@ -69,3 +73,7 @@ async function syncVpsQuickPayDeposits() {
 }
 
 syncVpsQuickPayDeposits();
+`;
+
+fs.writeFileSync(syncFile, updatedSyncContent, 'utf8');
+console.log('✅ Updated sync_vps_quickpay_deposits.js to approve 667988a5 (680315159) & e6805b5b (604023517)!');
