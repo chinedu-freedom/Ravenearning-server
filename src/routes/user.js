@@ -1695,6 +1695,7 @@ router.post('/withdraw', authenticate, async (req, res) => {
         fees: fees,
         net_amount: netAmount,
         wallet_address: destAddress,
+        status: 'PENDING'
       }
     });
 
