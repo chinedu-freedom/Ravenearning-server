@@ -1473,8 +1473,10 @@ router.post('/deposit', authenticate, async (req, res) => {
 
     const isManualUsdt = paymentMethod === 'USDT (Manual)' || paymentMethod?.includes('USDT') || req.body.proof_image_url || req.body.tx_hash;
 
+    const generatedTrackId = 'DEP-' + Math.random().toString(36).substring(2, 10) + '-' + Date.now();
     const deposit = await prisma.deposits.create({
       data: {
+        track_id: generatedTrackId,
         user_id: userId,
         amount: Number(amount),
         cryptocurrency: cryptoLabel,
