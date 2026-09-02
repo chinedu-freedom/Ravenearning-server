@@ -46,16 +46,22 @@ const handleDepositWebhook = async (req, res) => {
       const rawMchStr = String(mchOrderNo || '');
       const orderPrefix = rawMchStr.replace('DEP-', '').split('-')[0];
 
-      const deposit = await prisma.deposits.findFirst({
+      let deposit = await prisma.deposits.findFirst({
         where: {
           OR: [
             { track_id: rawMchStr },
-            { track_id: { contains: orderPrefix } },
-            { id: { startsWith: orderPrefix } }
+            { track_id: { contains: orderPrefix } }
           ]
         },
         include: { user: true }
       });
+
+      if (!deposit && orderPrefix.length === 36) {
+        deposit = await prisma.deposits.findUnique({
+          where: { id: orderPrefix },
+          include: { user: true }
+        });
+      }
 
       if (deposit && deposit.status !== 'APPROVED' && deposit.status !== 'approved') {
         const approvedAmount = rawAmount ? (Number(rawAmount) > 10000 ? Number(rawAmount) / 100 : Number(rawAmount)) : Number(deposit.amount);
