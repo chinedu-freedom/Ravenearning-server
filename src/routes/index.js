@@ -30,23 +30,33 @@ const handleDepositWebhook = async (req, res) => {
     console.log('QuickPay Webhook Payload Received:', JSON.stringify(payload));
 
     const data = payload.data || payload;
-    const { payOrderId, tradeState, status, amount, payAmount } = data;
+    const mchOrderNo = data.mchOrderNo || data.payOrderId || data.out_trade_no || data.orderId || payload.mchOrderNo || payload.payOrderId || payload.out_trade_no;
+    const tradeState = data.tradeState || data.status || payload.tradeState || payload.status;
+    const rawAmount = data.payAmount || data.amount || payload.payAmount || payload.amount;
 
-    const isSuccess = (tradeState === 'SUCCESS' || status === 'success' || tradeState === 'success');
+    const isSuccess = (
+      tradeState === 'SUCCESS' ||
+      tradeState === 'success' ||
+      tradeState === '2' ||
+      tradeState === 2 ||
+      tradeState === 'SUCCESSFUL'
+    );
 
-    if (isSuccess && payOrderId) {
+    if (isSuccess && mchOrderNo) {
+      const orderPrefix = String(mchOrderNo).replace('DEP-', '').split('-')[0];
+
       const deposit = await prisma.deposits.findFirst({
         where: {
           OR: [
-            { track_id: payOrderId },
-            { id: payOrderId.replace('DEP-', '').split('-')[0] }
+            { track_id: String(mchOrderNo) },
+            { id: orderPrefix }
           ]
         },
         include: { user: true }
       });
 
-      if (deposit && deposit.status !== 'approved') {
-        const approvedAmount = Number(payAmount || amount || deposit.amount);
+      if (deposit && deposit.status !== 'APPROVED' && deposit.status !== 'approved') {
+        const approvedAmount = rawAmount ? (Number(rawAmount) > 10000 ? Number(rawAmount) / 100 : Number(rawAmount)) : Number(deposit.amount);
 
         await prisma.$transaction(async (tx) => {
           await tx.deposits.update({
@@ -58,7 +68,7 @@ const handleDepositWebhook = async (req, res) => {
           });
 
           const userBefore = await tx.users.findUnique({ where: { id: deposit.user_id } });
-          const balanceBefore = Number(userBefore.balance);
+          const balanceBefore = Number(userBefore.balance || 0);
           const balanceAfter = balanceBefore + approvedAmount;
 
           await tx.users.update({
@@ -73,12 +83,12 @@ const handleDepositWebhook = async (req, res) => {
               amount: approvedAmount,
               balance_before: balanceBefore,
               balance_after: balanceAfter,
-              description: 'Deposit'
+              description: 'QuickPay Automatic Online Deposit'
             }
           });
         });
 
-        console.log(`QuickPay Deposit ${deposit.id} auto-approved for ${deposit.user_id}`);
+        console.log(`QuickPay Deposit ${deposit.id} (${deposit.track_id}) auto-approved for R${approvedAmount} (User: ${deposit.user_id})`);
       }
     }
 
