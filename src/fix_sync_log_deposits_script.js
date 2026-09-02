@@ -1,11 +1,15 @@
-import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
+
+const syncLogFile = 'C:\\Users\\Spark.DESKTOP-F75SGV0\\Desktop\\omni-backend\\src\\sync_log_deposits.js';
+
+const safeSyncLogContent = `import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function syncLogDeposits() {
   console.log('====================================================');
   console.log('⚡ SYNCING RECENT DEPOSITS FROM PM2 LOGS ON VPS');
-  console.log('====================================================\n');
+  console.log('====================================================\\n');
 
   const targetTrackIds = [
     'DEP-0ffb374c-1788354504795',
@@ -34,12 +38,12 @@ async function syncLogDeposits() {
     }
 
     if (!deposit) {
-      console.log(`❌ Deposit with track_id/prefix ${trackId} not found.`);
+      console.log(\`❌ Deposit with track_id/prefix \${trackId} not found.\`);
       continue;
     }
 
     if (deposit.status === 'APPROVED') {
-      console.log(`ℹ️ Deposit ${deposit.id} (${deposit.track_id}) is already APPROVED.`);
+      console.log(\`ℹ️ Deposit \${deposit.id} (\${deposit.track_id}) is already APPROVED.\`);
       continue;
     }
 
@@ -69,11 +73,11 @@ async function syncLogDeposits() {
           amount: amount,
           balance_before: oldBal,
           balance_after: newBal,
-          description: `QuickPay Auto Deposit Approved (R${amount})`
+          description: \`QuickPay Auto Deposit Approved (R\${amount})\`
         }
       });
 
-      console.log(`✅ Approved Deposit ${deposit.id} (${deposit.track_id}) for R${amount} -> User Phone: ${deposit.user.phone || deposit.user.email}`);
+      console.log(\`✅ Approved Deposit \${deposit.id} (\${deposit.track_id}) for R\${amount} -> User Phone: \${deposit.user.phone || deposit.user.email}\`);
     });
   }
 
@@ -81,3 +85,7 @@ async function syncLogDeposits() {
 }
 
 syncLogDeposits();
+`;
+
+fs.writeFileSync(syncLogFile, safeSyncLogContent, 'utf8');
+console.log('✅ Updated sync_log_deposits.js with 100% safe Prisma UUID lookup!');
