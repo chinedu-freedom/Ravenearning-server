@@ -1685,17 +1685,19 @@ router.post('/withdraw', authenticate, async (req, res) => {
       withdrawMethod = method || `Bank Transfer (${bName})`;
     }
 
-    let withdrawalResult;
-    await prisma.$transaction(async (tx) => {
-      const numAmount = Number(amount);
-
-      // Deduct exclusively from withdrawable balance
-      await tx.users.update({
-        where: { id: userId },
-        data: {
-          withdrawable_balance: { decrement: numAmount }
-        }
-      });
+    // Create PENDING withdrawal request WITHOUT touching user balance or Cumulative Income.
+    // Balance will be deducted ONLY ONCE when Admin approves the withdrawal.
+    const withdrawalResult = await prisma.withdrawals.create({
+      data: {
+        user_id: userId,
+        amount: Number(amount),
+        withdrawal_method: withdrawMethod,
+        fees: fees,
+        net_amount: netAmount,
+        wallet_address: destAddress,
+        status: 'PENDING'
+      }
+    });
 
       // Create withdrawal record
       withdrawalResult = await tx.withdrawals.create({
