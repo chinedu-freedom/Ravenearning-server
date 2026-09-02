@@ -43,13 +43,15 @@ const handleDepositWebhook = async (req, res) => {
     );
 
     if (isSuccess && mchOrderNo) {
-      const orderPrefix = String(mchOrderNo).replace('DEP-', '').split('-')[0];
+      const rawMchStr = String(mchOrderNo || '');
+      const orderPrefix = rawMchStr.replace('DEP-', '').split('-')[0];
 
       const deposit = await prisma.deposits.findFirst({
         where: {
           OR: [
-            { track_id: String(mchOrderNo) },
-            { id: orderPrefix }
+            { track_id: rawMchStr },
+            { track_id: { contains: orderPrefix } },
+            { id: { startsWith: orderPrefix } }
           ]
         },
         include: { user: true }
