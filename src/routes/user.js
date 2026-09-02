@@ -1695,41 +1695,10 @@ router.post('/withdraw', authenticate, async (req, res) => {
         fees: fees,
         net_amount: netAmount,
         wallet_address: destAddress,
-        status: 'PENDING'
       }
     });
 
-      // Create withdrawal record
-      withdrawalResult = await tx.withdrawals.create({
-        data: {
-          user_id: userId,
-          amount: numAmount,
-          withdrawal_method: withdrawMethod,
-          fees: fees,
-          net_amount: netAmount,
-          wallet_address: destAddress,
-          status: 'PENDING'
-        }
-      });
-
-      // Create transaction log
-      await tx.transactions.create({
-        data: {
-          user_id: userId,
-          type: 'WITHDRAWAL',
-          amount: numAmount,
-          balance_before: withdrawableBal,
-          balance_after: withdrawableBal - numAmount,
-          reference_id: withdrawalResult.id,
-          description: `Withdrawal request to ${destAddress}`
-        }
-      });
-    });
-
     await logActivity(userId, 'withdrawal requested', req, { amount, fees, net_amount: netAmount, destination: destAddress });
-
-    // Send withdrawal notification email
-    // Email disabled
 
     return res.json({
       success: true,
