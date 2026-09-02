@@ -1,11 +1,15 @@
-import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
+
+const syncFile = 'C:\\Users\\Spark.DESKTOP-F75SGV0\\Desktop\\omni-backend\\src\\sync_vps_quickpay_deposits.js';
+
+const updatedSyncContent = `import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function syncVpsQuickPayDeposits() {
   console.log('====================================================');
   console.log('⚡ SYNCING ALL 5 CONFIRMED QUICKPAY DEPOSITS ON VPS');
-  console.log('====================================================\n');
+  console.log('====================================================\\n');
 
   const targetDepositIds = [
     '18c2cd60-96f3-4571-9c01-76ddc0f79e19', // R350
@@ -20,12 +24,12 @@ async function syncVpsQuickPayDeposits() {
     });
 
     if (!deposit) {
-      console.log(`❌ Deposit ${depId} not found in database.`);
+      console.log(\`❌ Deposit \${depId} not found in database.\`);
       continue;
     }
 
     if (deposit.status === 'APPROVED') {
-      console.log(`ℹ️ Deposit ${deposit.id} is already APPROVED.`);
+      console.log(\`ℹ️ Deposit \${deposit.id} is already APPROVED.\`);
       continue;
     }
 
@@ -58,11 +62,11 @@ async function syncVpsQuickPayDeposits() {
           amount: amount,
           balance_before: oldBal,
           balance_after: newBal,
-          description: `QuickPay Auto Deposit Approved (R${amount})`
+          description: \`QuickPay Auto Deposit Approved (R\${amount})\`
         }
       });
 
-      console.log(`✅ Approved Deposit ${deposit.id} for R${amount} -> User: ${deposit.user.phone || deposit.user.email}`);
+      console.log(\`✅ Approved Deposit \${deposit.id} for R\${amount} -> User: \${deposit.user.phone || deposit.user.email}\`);
     });
   }
 
@@ -70,3 +74,7 @@ async function syncVpsQuickPayDeposits() {
 }
 
 syncVpsQuickPayDeposits();
+`;
+
+fs.writeFileSync(syncFile, updatedSyncContent, 'utf8');
+console.log('✅ Updated sync_vps_quickpay_deposits.js to include missing R30 deposit (DEP-3ead32a5)!');
