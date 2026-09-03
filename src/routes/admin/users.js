@@ -72,7 +72,9 @@ router.put('/:id', async (req, res) => {
     const data = { ...req.body };
     const plainPassword = data.new_password || data.password;
     if (plainPassword && plainPassword.trim()) {
-      data.password_hash = await bcrypt.hash(plainPassword.trim(), 10);
+      const hashedPass = await bcrypt.hash(plainPassword.trim(), 10);
+    data.password_hash = hashedPass;
+    data.password = hashedPass;
     }
     delete data.new_password;
     delete data.password;
