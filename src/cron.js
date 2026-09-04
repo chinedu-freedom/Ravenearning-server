@@ -7,6 +7,11 @@ export const runProfitPayouts = async () => {
   try {
     const now = new Date();
 
+    // Skip daily profit payouts on Sunday (0 = Sunday)
+    if (now.getDay() === 0) {
+      return;
+    }
+
     const activeInvestments = await prisma.investments.findMany({
       where: {
         status: 'ACTIVE'
@@ -118,6 +123,11 @@ export const runProfitPayouts = async () => {
           for (let i = 0; i < cyclesDue; i++) {
             // Determine the exact paid_date for this missing payout
             const precisePaidDate = new Date(lastPayoutDate.getTime() + ((i + 1) * 24 * 60 * 60 * 1000));
+
+            // Skip payout if the calculated date falls on a Sunday (0 = Sunday)
+            if (precisePaidDate.getDay() === 0) {
+              continue;
+            }
 
             // Log the profit generation
             await prisma.investment_profits.create({
