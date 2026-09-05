@@ -60,7 +60,9 @@ async function fixUserDuplicatePackage() {
 
         // Reverse referral commissions earned by uplines from this duplicate package's payouts
         const dupReferralComms = await prisma.referral_commissions.findMany({
-          where: { from_user_id: user.id, description: { contains: dupInv.plan?.name || 'daily profit' } }
+          where: { from_user_id: user.id },
+          orderBy: { created_at: 'desc' },
+          take: dupProfits.length * 3 // up to 3 upline levels per payout
         });
 
         for (const refComm of dupReferralComms) {
