@@ -80,13 +80,15 @@ router.put('/:id', async (req, res) => {
     delete data.password;
 
     const plainWithdrawalPin = data.new_withdrawal_pin || data.withdrawal_pin || data.new_withdrawal_password || data.withdrawal_password;
-    if (plainWithdrawalPin && plainWithdrawalPin.trim()) {
-      data.withdrawal_pin = await bcrypt.hash(plainWithdrawalPin.trim(), 10);
-    }
     delete data.new_withdrawal_pin;
-    delete data.withdrawal_pin;
     delete data.new_withdrawal_password;
     delete data.withdrawal_password;
+
+    if (plainWithdrawalPin && plainWithdrawalPin.trim()) {
+      data.withdrawal_pin = await bcrypt.hash(plainWithdrawalPin.trim(), 10);
+    } else {
+      delete data.withdrawal_pin;
+    }
 
     const user = await prisma.users.update({
       where: { id: req.params.id },
