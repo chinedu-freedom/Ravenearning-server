@@ -162,22 +162,31 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Phone number and password are required' });
   }
 
-  const digits = phoneNum ? phoneNum.replace(/[^0-9]/g, '') : '';
+  const digits = phoneNum ? String(phoneNum).replace(/[^0-9]/g, '') : '';
   const noZero = digits.startsWith('0') ? digits.substring(1) : digits;
   const with27 = noZero.startsWith('27') ? noZero : `27${noZero}`;
   const without27 = with27.startsWith('27') ? with27.substring(2) : with27;
+  const with27Raw = digits.startsWith('27') ? digits : `27${digits}`;
+  const zeroWithWithout27 = `0${without27}`;
 
   try {
     const user = await prisma.users.findFirst({
       where: {
         OR: [
+          { phone: phoneNum },
+          { phone: digits },
+          { phone: with27Raw },
           { phone: with27 },
           { phone: without27 },
-          { phone: digits },
+          { phone: zeroWithWithout27 },
+          { username: phoneNum },
+          { username: digits },
+          { username: with27Raw },
           { username: with27 },
           { username: without27 },
+          { username: zeroWithWithout27 },
+          { email: `${with27Raw}@omni.com` },
           { email: `${with27}@omni.com` },
-          { email: `${without27}@omni.com` },
           { email: `${digits}@omni.com` },
           { email: phoneNum }
         ].filter(Boolean)
