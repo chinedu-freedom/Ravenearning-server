@@ -174,7 +174,7 @@ router.post('/invest', authenticate, async (req, res) => {
               amount: commissionAmount,
               balance_before: Number(referrer.withdrawable_balance || 0),
               balance_after: newReferrerBalance,
-              description: `Level ${i + 1} Rebate Commission from ${user.username || user.full_name}`
+              description: `Level ${i + 1} Referral Commission from ${user.username || user.full_name}`
             }
           });
           
