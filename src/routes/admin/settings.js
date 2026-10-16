@@ -99,8 +99,8 @@ router.get('/platform', async (req, res) => {
     if (!settings) {
       settings = await prisma.settings.create({
         data: {
-          site_name: "Ravenearning",
-          site_title: "Ravenearning",
+          site_name: "suncerestcapital",
+          site_title: "suncerestcapital",
           currency_name: "ZAR",
           currency_symbol: "R",
           timezone: "UTC",

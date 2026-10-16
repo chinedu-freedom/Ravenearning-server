@@ -7,8 +7,8 @@ dotenv.config();
 const prisma = new PrismaClient();
 
 const defaultSettings = {
-  site_name: 'Ravenearning',
-  site_title: 'Ravenearning Investment Platform',
+  site_name: 'suncerestcapital',
+  site_title: 'suncerestcapital',
   currency_name: 'ZAR',
   currency_symbol: 'R',
   timezone: 'Africa/Johannesburg',

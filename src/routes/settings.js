@@ -13,7 +13,7 @@ router.get(['/', '/public'], async (req, res) => {
       settings.platform_logo = "/logo.jpeg";
     }
     
-    res.json({ success: true, settings: settings || { site_name: 'Ravenearning', platform_logo: '/logo.jpeg', currency_symbol: 'R' } });
+    res.json({ success: true, settings: settings || { site_name: 'suncerestcapital', platform_logo: '/logo.jpeg', currency_symbol: 'R' } });
   } catch (error) {
     console.error('Settings fetch error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch settings' });
