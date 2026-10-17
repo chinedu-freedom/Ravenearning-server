@@ -12,6 +12,7 @@ const createCrudRoutes = (modelName) => {
   
   r.get('/', async (req, res) => {
     try {
+      if (!prisma[modelName]) return res.json([]);
       const items = await prisma[modelName].findMany();
       res.json(items);
     } catch (e) {
@@ -21,6 +22,7 @@ const createCrudRoutes = (modelName) => {
 
   r.get('/:id', async (req, res) => {
     try {
+      if (!prisma[modelName]) return res.status(404).json({ error: 'Item not found' });
       const item = await prisma[modelName].findUnique({ where: { id: req.params.id } });
       if (!item) {
         return res.status(404).json({ error: `Item not found` });

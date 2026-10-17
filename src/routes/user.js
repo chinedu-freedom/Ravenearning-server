@@ -172,8 +172,8 @@ router.post('/bank-details', authenticate, async (req, res) => {
     if (user.withdrawal_pin) {
       isPasswordValid = await safeBcryptCompare(password, user.withdrawal_pin);
     }
-    if (!isPasswordValid && user.password) {
-      isPasswordValid = await safeBcryptCompare(password, user.password);
+    if (!isPasswordValid && user.password_hash) {
+      isPasswordValid = await safeBcryptCompare(password, user.password_hash);
     }
 
     if (!isPasswordValid) {
@@ -674,13 +674,14 @@ router.get('/team', authenticate, async (req, res) => {
     }
 
     // Count Valid/Active members (those with at least one investment or approved deposit)
-    const l1Valid = level1Users.filter(u => u.investments?.length > 0 || u.deposits?.some(d => d.status === 'approved')).length;
-    const l2Valid = level2Users.filter(u => u.investments?.length > 0 || u.deposits?.some(d => d.status === 'approved')).length;
-    const l3Valid = level3Users.filter(u => u.investments?.length > 0 || u.deposits?.some(d => d.status === 'approved')).length;
+    const isApprovedDeposit = (d) => d.status && ['approved', 'success'].includes(String(d.status).toLowerCase());
+    const l1Valid = level1Users.filter(u => u.investments?.length > 0 || u.deposits?.some(isApprovedDeposit)).length;
+    const l2Valid = level2Users.filter(u => u.investments?.length > 0 || u.deposits?.some(isApprovedDeposit)).length;
+    const l3Valid = level3Users.filter(u => u.investments?.length > 0 || u.deposits?.some(isApprovedDeposit)).length;
 
     // Calculate Total Deposits per level
     const calcDeposits = (users) => users.reduce((acc, user) => {
-      const userDeposits = user.deposits?.filter(d => d.status === 'approved').reduce((sum, d) => sum + parseFloat(d.amount), 0) || 0;
+      const userDeposits = user.deposits?.filter(isApprovedDeposit).reduce((sum, d) => sum + parseFloat(d.amount), 0) || 0;
       return acc + userDeposits;
     }, 0);
 
@@ -907,8 +908,8 @@ router.put('/me/payment', authenticate, async (req, res) => {
       if (user.withdrawal_pin) {
         isCurrentValid = await safeBcryptCompare(currentPassword, user.withdrawal_pin);
       }
-      if (!isCurrentValid && user.password) {
-        isCurrentValid = await safeBcryptCompare(currentPassword, user.password);
+      if (!isCurrentValid && user.password_hash) {
+        isCurrentValid = await safeBcryptCompare(currentPassword, user.password_hash);
       }
 
       if (!isCurrentValid) {
@@ -1446,7 +1447,7 @@ router.post('/deposit', authenticate, async (req, res) => {
     }
 
     let cryptoLabel = "Deposit";
-    if (cryptoId) {
+    if (cryptoId && prisma.payout_cryptocurrencies) {
       const cryptoOption = await prisma.payout_cryptocurrencies.findUnique({
         where: { id: cryptoId }
       });
@@ -1654,8 +1655,8 @@ router.post('/withdraw', authenticate, async (req, res) => {
     if (user.withdrawal_pin) {
       isPasswordValid = await safeBcryptCompare(password, user.withdrawal_pin);
     }
-    if (!isPasswordValid && user.password) {
-      isPasswordValid = await safeBcryptCompare(password, user.password);
+    if (!isPasswordValid && user.password_hash) {
+      isPasswordValid = await safeBcryptCompare(password, user.password_hash);
     }
 
     if (!isPasswordValid) {

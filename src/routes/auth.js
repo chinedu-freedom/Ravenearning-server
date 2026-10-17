@@ -302,8 +302,8 @@ router.post('/admin/login', async (req, res) => {
   }
 });
 
-// Forgot Password
-router.post('/forgot-password', async (req, res) => {
+// Forgot Password / Resend OTP
+router.post(['/forgot-password', '/resend-otp'], async (req, res) => {
   const { email, phone } = req.body;
   const phoneNum = phone || email || req.body.phone_number;
   if (!phoneNum) return res.status(400).json({ error: 'Phone number is required' });
@@ -428,7 +428,7 @@ router.post('/reset-password', async (req, res) => {
     await prisma.$transaction([
       prisma.users.update({
         where: { id: user.id },
-        data: { password_hash, password: password_hash }
+        data: { password_hash }
       }),
       prisma.password_resets.update({
         where: { id: reset.id },
@@ -498,7 +498,7 @@ router.post('/admin/reset-password', async (req, res) => {
 
     await prisma.admins.update({
       where: { id: admin.id },
-      data: { password_hash, password: password_hash }
+      data: { password_hash }
     });
 
     adminPasswordResets.delete(phoneNum);

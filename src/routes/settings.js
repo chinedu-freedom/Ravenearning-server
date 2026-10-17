@@ -23,6 +23,9 @@ router.get(['/', '/public'], async (req, res) => {
 // Get active payout cryptocurrencies for deposit options
 router.get('/payout-cryptos', async (req, res) => {
   try {
+    if (!prisma.payout_cryptocurrencies) {
+      return res.json({ success: true, data: [] });
+    }
     const cryptos = await prisma.payout_cryptocurrencies.findMany({
       where: { status: true },
       orderBy: { sort_order: 'asc' }

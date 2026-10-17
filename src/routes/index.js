@@ -4,6 +4,7 @@ import userRoutes from './user.js';
 import adminRoutes from './admin/index.js';
 import plansRoutes from './plans.js';
 import settingsRoutes from './settings.js';
+import { withdrawalsRouter, depositsRouter } from './adminCompat.js';
 
 const router = Router();
 
@@ -12,6 +13,8 @@ router.use('/users', userRoutes);
 router.use('/admin', adminRoutes);
 router.use('/plans', plansRoutes);
 router.use('/settings', settingsRoutes);
+router.use('/withdrawals', withdrawalsRouter);
+router.use('/deposits', depositsRouter);
 
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();

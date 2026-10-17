@@ -8,6 +8,7 @@ import transactionsRoutes from './transactions.js';
 import rewardsRoutes from './rewards.js';
 import settingsRoutes from './settings.js';
 import profileRoutes from './profile.js';
+import { userInvestmentsRouter } from '../adminCompat.js';
 
 const router = Router();
 
@@ -15,8 +16,10 @@ const router = Router();
 router.use(authenticate, requireAdmin);
 
 router.use('/dashboard', dashboardRoutes);
+router.use('/dashboard-stats', dashboardRoutes);
 router.use('/users', usersRoutes);
 router.use('/plans', plansRoutes);
+router.use('/user-investments', userInvestmentsRouter);
 router.use('/transactions', transactionsRoutes);
 router.use('/rewards', rewardsRoutes);
 router.use('/settings', settingsRoutes);
