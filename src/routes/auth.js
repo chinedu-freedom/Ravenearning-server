@@ -21,14 +21,18 @@ router.post('/register', async (req, res) => {
 
   const userPhone = phoneNum ? String(phoneNum).trim() : '';
   const rawDigits = userPhone.replace(/[^0-9]/g, '');
+
+  if (rawDigits.length !== 9) {
+    return res.status(400).json({ error: 'Phone number must be exactly 9 digits' });
+  }
   
   if (!email) {
-    email = `${userPhone}@omni.com`;
+    email = `${rawDigits}@omni.com`;
   }
   if (!full_name) {
-    full_name = `Member ${userPhone.slice(-4)}`;
+    full_name = `Member ${rawDigits.slice(-4)}`;
   }
-  const username = userPhone;
+  const username = rawDigits;
 
   if (!password) {
     return res.status(400).json({ error: 'Password is required' });
@@ -94,7 +98,7 @@ router.post('/register', async (req, res) => {
 
     const user = await prisma.users.create({
       data: {
-        phone: userPhone,
+        phone: rawDigits,
         email,
         password_hash,
         full_name,
