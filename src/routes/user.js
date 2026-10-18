@@ -508,11 +508,22 @@ router.post('/tasks/claim', authenticate, async (req, res) => {
 
     // Process claim in transaction
     await prisma.$transaction(async (tx) => {
-      await tx.task_claims.create({
-        data: {
+      await tx.task_claims.upsert({
+        where: {
+          task_id_user_id: {
+            task_id: taskId,
+            user_id: userId
+          }
+        },
+        update: {
+          completed_at: new Date(),
+          status: 'COMPLETED'
+        },
+        create: {
           task_id: taskId,
           user_id: userId,
-          status: 'COMPLETED'
+          status: 'COMPLETED',
+          completed_at: new Date()
         }
       });
 

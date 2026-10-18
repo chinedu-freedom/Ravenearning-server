@@ -82,18 +82,40 @@ router.get('/tasks', async (req, res) => {
 
 router.post('/tasks', async (req, res) => {
   try {
-    const task = await prisma.tasks.create({ data: req.body });
+    const { task_name, description, required_referrals, reward_amount, status } = req.body;
+    const task = await prisma.tasks.create({
+      data: {
+        task_name,
+        description: description || null,
+        required_referrals: Number(required_referrals),
+        reward_amount: Number(reward_amount),
+        status: status !== undefined ? Boolean(status) : true
+      }
+    });
     res.status(201).json(task);
   } catch (error) {
+    console.error('Failed to create task:', error);
     res.status(500).json({ error: 'Failed to create task' });
   }
 });
 
 router.put('/tasks/:id', async (req, res) => {
   try {
-    const task = await prisma.tasks.update({ where: { id: req.params.id }, data: req.body });
+    const { task_name, description, required_referrals, reward_amount, status } = req.body;
+    const updateData = {};
+    if (task_name !== undefined) updateData.task_name = task_name;
+    if (description !== undefined) updateData.description = description;
+    if (required_referrals !== undefined) updateData.required_referrals = Number(required_referrals);
+    if (reward_amount !== undefined) updateData.reward_amount = Number(reward_amount);
+    if (status !== undefined) updateData.status = Boolean(status);
+
+    const task = await prisma.tasks.update({
+      where: { id: req.params.id },
+      data: updateData
+    });
     res.json(task);
   } catch (error) {
+    console.error('Failed to update task:', error);
     res.status(500).json({ error: 'Failed to update task' });
   }
 });
