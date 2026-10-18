@@ -168,14 +168,14 @@ router.post('/bank-details', authenticate, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    let isPasswordValid = false;
-    if (user.withdrawal_pin) {
-      isPasswordValid = await safeBcryptCompare(password, user.withdrawal_pin);
-    }
-    if (!isPasswordValid && user.password_hash) {
-      isPasswordValid = await safeBcryptCompare(password, user.password_hash);
+    if (!user.withdrawal_pin) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Please create your withdrawal password in Account Settings before linking payout details' 
+      });
     }
 
+    const isPasswordValid = await safeBcryptCompare(password, user.withdrawal_pin);
     if (!isPasswordValid) {
       return res.status(400).json({ success: false, message: 'Incorrect withdrawal password' });
     }
@@ -344,7 +344,9 @@ router.get('/transactions', authenticate, async (req, res) => {
         status = (dStatus === 'approved' || dStatus === 'success') ? 'SUCCESS' : (dStatus === 'rejected' || dStatus === 'failed' ? 'FAILED' : 'PENDING');
       }
 
+      const matchedDeposit = (isDeposit && t.reference_id && depositMap[t.reference_id]) ? depositMap[t.reference_id] : null;
       let description = t.description;
+      const rawDescription = t.description;
       if (isDeposit || (description && /quick pay|gateway|direct bank|official recharge/i.test(description))) {
         description = 'Deposit';
       } else if (isWithdrawal || (description && /withdraw/i.test(description))) {
@@ -353,9 +355,13 @@ router.get('/transactions', authenticate, async (req, res) => {
 
       return {
         ...t,
+        raw_description: rawDescription,
         description,
         status,
-        wallet_address: walletAddress
+        wallet_address: walletAddress,
+        cryptocurrency: matchedDeposit?.cryptocurrency || null,
+        payment_method: matchedDeposit?.cryptocurrency || null,
+        track_id: matchedDeposit?.track_id || null
       };
     });
 
@@ -368,6 +374,10 @@ router.get('/transactions', authenticate, async (req, res) => {
       balance_before: 0,
       balance_after: d.amount,
       description: 'Deposit',
+      raw_description: d.cryptocurrency || 'Deposit',
+      payment_method: d.cryptocurrency,
+      cryptocurrency: d.cryptocurrency,
+      track_id: d.track_id,
       status: (d.status || '').toLowerCase() === 'approved' ? 'SUCCESS' : ((d.status || '').toLowerCase() === 'rejected' ? 'FAILED' : 'PENDING'),
       created_at: d.created_at
     }));
@@ -549,15 +559,26 @@ router.get('/treasure/history', authenticate, async (req, res) => {
 // Claim Treasure Gift Code
 router.post('/treasure/claim', authenticate, async (req, res) => {
   try {
-    const { code } = req.body;
-    if (!code) return res.status(400).json({ success: false, error: 'Gift code is required' });
+    const cleanCode = (code || '').trim();
+    if (!cleanCode) return res.status(400).json({ success: false, error: 'Gift code is required' });
 
     const userId = req.user.id;
 
-    // Find the code
-    const giftCode = await prisma.gift_codes.findUnique({
-      where: { code }
+    // Find the code: try exact match first, then case-insensitive match
+    let giftCode = await prisma.gift_codes.findUnique({
+      where: { code: cleanCode }
     });
+
+    if (!giftCode) {
+      giftCode = await prisma.gift_codes.findFirst({
+        where: {
+          code: {
+            equals: cleanCode,
+            mode: 'insensitive'
+          }
+        }
+      });
+    }
 
     if (!giftCode) {
       return res.status(404).json({ success: false, error: 'Invalid gift code' });
@@ -904,14 +925,7 @@ router.put('/me/payment', authenticate, async (req, res) => {
         return res.status(400).json({ success: false, message: 'Current withdrawal password is required' });
       }
 
-      let isCurrentValid = false;
-      if (user.withdrawal_pin) {
-        isCurrentValid = await safeBcryptCompare(currentPassword, user.withdrawal_pin);
-      }
-      if (!isCurrentValid && user.password_hash) {
-        isCurrentValid = await safeBcryptCompare(currentPassword, user.password_hash);
-      }
-
+      const isCurrentValid = await safeBcryptCompare(currentPassword, user.withdrawal_pin);
       if (!isCurrentValid) {
         return res.status(400).json({ success: false, message: 'Incorrect current withdrawal password' });
       }
@@ -1455,7 +1469,9 @@ router.post('/deposit', authenticate, async (req, res) => {
         cryptoLabel = `${cryptoOption.symbol} (${cryptoOption.network})`;
       }
     } else if (paymentMethod) {
-      cryptoLabel = paymentMethod;
+      cryptoLabel = paymentMethod === 'Online Deposit' ? 'South Africa Bank' : paymentMethod;
+    } else {
+      cryptoLabel = 'South Africa Bank';
     }
 
     // Fetch global settings for deposit limits
@@ -1651,14 +1667,14 @@ router.post('/withdraw', authenticate, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Withdrawal password is required to confirm withdrawal' });
     }
 
-    let isPasswordValid = false;
-    if (user.withdrawal_pin) {
-      isPasswordValid = await safeBcryptCompare(password, user.withdrawal_pin);
-    }
-    if (!isPasswordValid && user.password_hash) {
-      isPasswordValid = await safeBcryptCompare(password, user.password_hash);
+    if (!user.withdrawal_pin) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Please create your withdrawal password in Account Settings before requesting a withdrawal' 
+      });
     }
 
+    const isPasswordValid = await safeBcryptCompare(password, user.withdrawal_pin);
     if (!isPasswordValid) {
       return res.status(400).json({ success: false, message: 'Incorrect withdrawal password' });
     }

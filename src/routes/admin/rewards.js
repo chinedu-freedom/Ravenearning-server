@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 
 const router = Router();
@@ -16,11 +16,17 @@ router.get('/gift-codes', async (req, res) => {
 
 router.post('/gift-codes', async (req, res) => {
   try {
-    const data = { ...req.body, created_by: req.user.id };
+    let adminId = req.user?.id;
+    if (!adminId) {
+      const firstAdmin = await prisma.admins.findFirst();
+      adminId = firstAdmin?.id;
+    }
+    const data = { ...req.body, created_by: adminId };
     const code = await prisma.gift_codes.create({ data });
     res.status(201).json(code);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create gift code' });
+    console.error('Failed to create gift code:', error);
+    res.status(500).json({ error: error?.message || 'Failed to create gift code' });
   }
 });
 
