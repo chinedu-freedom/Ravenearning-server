@@ -5,6 +5,7 @@ import adminRoutes from './admin/index.js';
 import plansRoutes from './plans.js';
 import settingsRoutes from './settings.js';
 import { withdrawalsRouter, depositsRouter } from './adminCompat.js';
+import { buildQuickPaySign } from '../lib/quickpay.js';
 
 const router = Router();
 
@@ -32,7 +33,26 @@ const handleDepositWebhook = async (req, res) => {
     const payload = req.body || {};
     console.log('QuickPay Webhook Payload Received:', JSON.stringify(payload));
 
+    const settings = await prisma.settings.findFirst();
+    const merchantKey = process.env.QUICKPAY_KEY || settings?.quickpay_key;
+
     const data = payload.data || payload;
+    const incomingSign = data.sign || payload.sign;
+
+    // Verify webhook signature if merchant key is configured
+    if (merchantKey) {
+      if (!incomingSign) {
+        console.warn('QuickPay Webhook rejected: missing signature');
+        return res.status(400).send('MISSING_SIGN');
+      }
+
+      const calculatedSign = buildQuickPaySign(data, merchantKey);
+      if (incomingSign.toUpperCase() !== calculatedSign.toUpperCase()) {
+        console.warn('QuickPay Webhook rejected: signature mismatch');
+        return res.status(400).send('INVALID_SIGN');
+      }
+    }
+
     const mchOrderNo = data.mchOrderNo || data.payOrderId || data.out_trade_no || data.orderId || payload.mchOrderNo || payload.payOrderId || payload.out_trade_no;
     const tradeState = data.tradeState || data.status || payload.tradeState || payload.status;
     const rawAmount = data.payAmount || data.amount || payload.payAmount || payload.amount;

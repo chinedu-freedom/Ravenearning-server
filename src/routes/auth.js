@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetConfirmationEmail } from '../lib/mailer.js';
 import { logActivity } from '../lib/logger.js';
@@ -342,7 +343,11 @@ router.post(['/forgot-password', '/resend-otp'], async (req, res) => {
       }
     });
 
-    res.json({ success: true, message: 'OTP sent successfully', otp });
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[AUTH DEBUG] Password reset OTP generated for ${phoneNum}: ${otp}`);
+    }
+
+    res.json({ success: true, message: 'OTP sent successfully' });
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({ error: 'Failed to process request' });
@@ -382,7 +387,14 @@ router.post('/verify-otp', async (req, res) => {
 
     if (!reset) return res.status(400).json({ error: 'Invalid or expired OTP' });
 
-    res.json({ success: true, message: 'OTP verified' });
+    // Mark as verified by replacing OTP token with a single-use verified session token
+    const verifiedToken = `VERIFIED_${crypto.randomBytes(16).toString('hex')}`;
+    await prisma.password_resets.update({
+      where: { id: reset.id },
+      data: { token: verifiedToken }
+    });
+
+    res.json({ success: true, message: 'OTP verified', token: verifiedToken });
   } catch (error) {
     console.error('Verify OTP error:', error);
     res.status(500).json({ error: 'Failed to verify OTP' });
@@ -414,13 +426,14 @@ router.post('/reset-password', async (req, res) => {
     const reset = await prisma.password_resets.findFirst({
       where: {
         user_id: user.id,
+        token: { startsWith: 'VERIFIED_' },
         used: false,
         expires_at: { gt: new Date() }
       },
       orderBy: { created_at: 'desc' }
     });
 
-    if (!reset) return res.status(400).json({ error: 'No active password reset session found' });
+    if (!reset) return res.status(400).json({ error: 'Valid OTP verification required before resetting password' });
 
     const password_hash = await bcrypt.hash(newPassword, 10);
 
@@ -457,7 +470,11 @@ router.post('/admin/forgot-password', async (req, res) => {
 
     adminPasswordResets.set(phoneNum, { otp, expires_at });
 
-    res.json({ success: true, message: 'OTP sent successfully', otp });
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[AUTH DEBUG] Admin password reset OTP generated for ${phoneNum}: ${otp}`);
+    }
+
+    res.json({ success: true, message: 'OTP sent successfully' });
   } catch (error) {
     console.error('Admin forgot password error:', error);
     res.status(500).json({ error: 'Failed to process request' });

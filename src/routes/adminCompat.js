@@ -105,10 +105,12 @@ withdrawalsRouter.patch('/:id', async (req, res) => {
       const currentWithdrawable = Number(user?.withdrawable_balance || 0);
       const withdrawAmount = Number(withdrawal.amount);
 
-      let newBalance = currentWithdrawable;
-      if (currentWithdrawable >= withdrawAmount) {
-        newBalance = currentWithdrawable - withdrawAmount;
+      if (currentWithdrawable < withdrawAmount) {
+        return res.status(400).json({
+          error: `Cannot approve withdrawal: user has insufficient withdrawable balance (Current: R${currentWithdrawable.toFixed(2)}, Required: R${withdrawAmount.toFixed(2)})`
+        });
       }
+      const newBalance = currentWithdrawable - withdrawAmount;
 
       await prisma.$transaction([
         prisma.withdrawals.update({

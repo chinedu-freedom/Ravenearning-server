@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, requireAdmin } from '../middleware/auth.js';
 import bcrypt from 'bcrypt';
 // Email notifications disabled
 import { logActivity } from '../lib/logger.js';
@@ -20,7 +20,7 @@ const safeBcryptCompare = async (password, hash) => {
   }
 };
 
-router.get('/', async (req, res) => {
+router.get('/', authenticate, requireAdmin, async (req, res) => {
   try {
     const users = await prisma.users.findMany({
       select: {
@@ -1689,6 +1689,21 @@ router.post('/withdraw', authenticate, async (req, res) => {
     const isPasswordValid = await safeBcryptCompare(password, user.withdrawal_pin);
     if (!isPasswordValid) {
       return res.status(400).json({ success: false, message: 'Incorrect trade password' });
+    }
+
+    // Check if user already has an active pending withdrawal to prevent spam / double-spending
+    const activePending = await prisma.withdrawals.findFirst({
+      where: {
+        user_id: userId,
+        status: { in: ['PENDING', 'pending'] }
+      }
+    });
+
+    if (activePending) {
+      return res.status(400).json({
+        success: false,
+        message: 'You already have a pending withdrawal request in progress. Please await its processing before submitting a new one.'
+      });
     }
 
     const withdrawableBal = Number(user.withdrawable_balance || 0);
