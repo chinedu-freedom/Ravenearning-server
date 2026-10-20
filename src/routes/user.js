@@ -1093,9 +1093,9 @@ router.post('/me/verify-email', authenticate, async (req, res) => {
 });
 
 // ==========================================
-// SPIN WHEEL ENDPOINTS
+// SPIN WHEEL ENDPOINTS (COMMENTED OUT / DISABLED)
 // ==========================================
-
+/*
 // Get spin wheel configuration and user spin data
 router.get('/spin', authenticate, async (req, res) => {
   try {
@@ -1436,6 +1436,7 @@ router.post('/spin', authenticate, async (req, res) => {
     res.status(500).json({ success: false, message: 'An error occurred while spinning' });
   }
 });
+*/
 
 import crypto from 'crypto';
 
@@ -1755,12 +1756,12 @@ router.get('/daily-checkin', authenticate, async (req, res) => {
     if (checkinConfig.length === 0) {
       const defaults = [
         { day_number: 1, reward_amount: 1, description: 'Day 1 Check-in Reward' },
-        { day_number: 2, reward_amount: 2, description: 'Day 2 Check-in Reward' },
-        { day_number: 3, reward_amount: 3, description: 'Day 3 Check-in Reward' },
-        { day_number: 4, reward_amount: 4, description: 'Day 4 Check-in Reward' },
-        { day_number: 5, reward_amount: 5, description: 'Day 5 Check-in Reward' },
-        { day_number: 6, reward_amount: 6, description: 'Day 6 Check-in Reward' },
-        { day_number: 7, reward_amount: 7, description: 'Day 7 Check-in Reward' }
+        { day_number: 2, reward_amount: 1, description: 'Day 2 Check-in Reward' },
+        { day_number: 3, reward_amount: 1, description: 'Day 3 Check-in Reward' },
+        { day_number: 4, reward_amount: 1, description: 'Day 4 Check-in Reward' },
+        { day_number: 5, reward_amount: 1, description: 'Day 5 Check-in Reward' },
+        { day_number: 6, reward_amount: 1, description: 'Day 6 Check-in Reward' },
+        { day_number: 7, reward_amount: 1, description: 'Day 7 Check-in Reward' }
       ];
       for (const item of defaults) {
         await prisma.daily_checkins.create({ data: item });
