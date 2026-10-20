@@ -160,7 +160,7 @@ router.post('/bank-details', authenticate, async (req, res) => {
     const { wallet_type, account_name, bank_name, account_number, usdt_address, usdt_network, password } = req.body;
 
     if (!password) {
-      return res.status(400).json({ success: false, message: 'Withdrawal password is required to save wallet details' });
+      return res.status(400).json({ success: false, message: 'Trade password is required to save wallet details' });
     }
 
     const user = await prisma.users.findUnique({ where: { id: userId } });
@@ -171,13 +171,13 @@ router.post('/bank-details', authenticate, async (req, res) => {
     if (!user.withdrawal_pin) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Please create your withdrawal password in Account Settings before linking payout details' 
+        message: 'Please create your trade password in Account Settings before linking payout details' 
       });
     }
 
     const isPasswordValid = await safeBcryptCompare(password, user.withdrawal_pin);
     if (!isPasswordValid) {
-      return res.status(400).json({ success: false, message: 'Incorrect withdrawal password' });
+      return res.status(400).json({ success: false, message: 'Incorrect trade password' });
     }
 
     if (wallet_type === 'usdt' || usdt_address) {
@@ -930,20 +930,20 @@ router.put('/me/payment', authenticate, async (req, res) => {
 
     const hasPin = Boolean(user.withdrawal_pin);
 
-    // If user already set a withdrawal password, require current password validation!
+    // If user already set a trade password, require current password validation!
     if (hasPin) {
       if (!currentPassword) {
-        return res.status(400).json({ success: false, message: 'Current withdrawal password is required' });
+        return res.status(400).json({ success: false, message: 'Current trade password is required' });
       }
 
       const isCurrentValid = await safeBcryptCompare(currentPassword, user.withdrawal_pin);
       if (!isCurrentValid) {
-        return res.status(400).json({ success: false, message: 'Incorrect current withdrawal password' });
+        return res.status(400).json({ success: false, message: 'Incorrect current trade password' });
       }
     }
 
     if (!newPassword || newPassword.trim().length < 4) {
-      return res.status(400).json({ success: false, message: 'New withdrawal password must be at least 4 characters' });
+      return res.status(400).json({ success: false, message: 'New trade password must be at least 4 characters' });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -954,10 +954,10 @@ router.put('/me/payment', authenticate, async (req, res) => {
       data: { withdrawal_pin: pinHash }
     });
 
-    res.json({ success: true, message: 'Withdrawal password saved successfully' });
+    res.json({ success: true, message: 'Trade password saved successfully' });
   } catch (error) {
-    console.error('Set withdrawal pin error:', error);
-    res.status(500).json({ success: false, message: 'Failed to save withdrawal password' });
+    console.error('Set trade pin error:', error);
+    res.status(500).json({ success: false, message: 'Failed to save trade password' });
   }
 });
 
@@ -1674,21 +1674,21 @@ router.post('/withdraw', authenticate, async (req, res) => {
       });
     }
 
-    // Verify withdrawal password to confirm withdrawal
+    // Verify trade password to confirm withdrawal
     if (!password) {
-      return res.status(400).json({ success: false, message: 'Withdrawal password is required to confirm withdrawal' });
+      return res.status(400).json({ success: false, message: 'Trade password is required to confirm withdrawal' });
     }
 
     if (!user.withdrawal_pin) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Please create your withdrawal password in Account Settings before requesting a withdrawal' 
+        message: 'Please create your trade password in Account Settings before requesting a withdrawal' 
       });
     }
 
     const isPasswordValid = await safeBcryptCompare(password, user.withdrawal_pin);
     if (!isPasswordValid) {
-      return res.status(400).json({ success: false, message: 'Incorrect withdrawal password' });
+      return res.status(400).json({ success: false, message: 'Incorrect trade password' });
     }
 
     const withdrawableBal = Number(user.withdrawable_balance || 0);
