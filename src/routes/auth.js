@@ -273,13 +273,8 @@ router.post('/admin/login', async (req, res) => {
       }
     }
 
-    // Fallback: if not found by specific identifier or no identifier sent, find primary admin
     if (!admin) {
-      admin = await prisma.admins.findFirst();
-    }
-
-    if (!admin) {
-      return res.status(401).json({ error: 'Admin account not found' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const isValid = await bcrypt.compare(password, admin.password_hash);
@@ -481,6 +476,9 @@ router.post('/admin/verify-otp', async (req, res) => {
       return res.status(400).json({ error: 'Invalid or expired OTP' });
     }
 
+    record.verified = true;
+    adminPasswordResets.set(phoneNum, record);
+
     res.json({ success: true, message: 'OTP verified' });
   } catch (error) {
     console.error('Admin verify OTP error:', error);
@@ -495,8 +493,21 @@ router.post('/admin/reset-password', async (req, res) => {
   if (!phoneNum || !newPassword) return res.status(400).json({ error: 'Phone number and new password are required' });
 
   try {
-    const admin = await prisma.admins.findFirst();
-    if (!admin) return res.status(400).json({ error: 'Invalid request' });
+    const record = adminPasswordResets.get(phoneNum);
+    if (!record || !record.verified || record.expires_at < Date.now()) {
+      return res.status(400).json({ error: 'Valid OTP verification required before reset' });
+    }
+
+    const admin = await prisma.admins.findFirst({
+      where: {
+        OR: [
+          { phone: phoneNum },
+          { email: phoneNum },
+          { username: phoneNum }
+        ]
+      }
+    });
+    if (!admin) return res.status(400).json({ error: 'Admin account not found' });
 
     const password_hash = await bcrypt.hash(newPassword, 10);
 

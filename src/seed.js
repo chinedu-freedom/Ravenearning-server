@@ -23,11 +23,11 @@ const defaultSettings = {
   withdrawal_charge: 15,
   deposit_charge: 0,
   deposit_bonus: 0,
-  quickpay_enabled: true,
-  quickpay_merchant: '29fa680428895a245ce880b907047bfe',
-  quickpay_key: 'f065020799e18163c90a18b9b2cea99b',
-  quickpay_url: 'https://safricaapi.quickn.vip',
-  quickpay_channel: '8001',
+  quickpay_enabled: false,
+  quickpay_merchant: process.env.QUICKPAY_MERCHANT || '',
+  quickpay_key: process.env.QUICKPAY_KEY || '',
+  quickpay_url: process.env.QUICKPAY_URL || 'https://safricaapi.quickn.vip',
+  quickpay_channel: process.env.QUICKPAY_CHANNEL || '8001',
   level1_commission: 30,
   level2_commission: 10,
   level3_commission: 5,
@@ -37,55 +37,42 @@ const defaultSettings = {
 };
 
 export async function runSeed() {
-  console.log('Seeding defaults...');
+  console.log('Checking database initialization state...');
 
-  // 1. Settings (Only if not created yet)
+  // 1. Settings: Only create initial defaults if table is empty. Never overwrite existing settings!
   const existingSettings = await prisma.settings.findFirst();
   if (!existingSettings) {
     await prisma.settings.create({ data: defaultSettings });
-    console.log('Created default platform settings');
+    console.log('Created initial platform settings');
   } else {
-    console.log('Platform settings already initialized, preserving admin configurations.');
+    console.log('Platform settings already exist. Preserving all admin configurations.');
   }
 
-  // 2. Admin Account (Only ensure superadmin exists)
-  const adminPassword = await bcrypt.hash('Chinedu2$', 10);
-  const existingAdmin = await prisma.admins.findFirst({
-    where: {
-      OR: [
-        { phone: '8158052206' },
-        { email: 'admin@omni.com' },
-        { username: 'admin' }
-      ]
-    }
-  });
+  // 2. Admin Account: ONLY create an initial superadmin if NO admin exists in the database.
+  // NEVER reset, update, or overwrite existing admin credentials on server restart!
+  const adminCount = await prisma.admins.count();
+  if (adminCount === 0) {
+    const initialEmail = process.env.ADMIN_INITIAL_EMAIL || 'admin@suncerestcapital.com';
+    const initialPhone = process.env.ADMIN_INITIAL_PHONE || '08158052206';
+    const initialPassword = process.env.ADMIN_INITIAL_PASSWORD || 'SuncerestAdmin2026!';
+    const initialUsername = process.env.ADMIN_INITIAL_USERNAME || 'admin';
+    const passwordHash = await bcrypt.hash(initialPassword, 10);
 
-  if (existingAdmin) {
-    await prisma.admins.update({
-      where: { id: existingAdmin.id },
-      data: {
-        phone: '8158052206',
-        email: 'admin@omni.com',
-        password_hash: adminPassword,
-        role: 'superadmin',
-        username: 'admin'
-      }
-    });
-    console.log('Updated admin account: 8158052206 / Chinedu2$');
-  } else {
     await prisma.admins.create({
       data: {
-        phone: '8158052206',
-        email: 'admin@omni.com',
-        password_hash: adminPassword,
+        phone: initialPhone,
+        email: initialEmail,
+        password_hash: passwordHash,
         role: 'superadmin',
-        username: 'admin'
+        username: initialUsername
       }
     });
-    console.log('Created admin account: 8158052206 / Chinedu2$');
+    console.log(`Created initial superadmin account: ${initialEmail} / ${initialPhone}`);
+  } else {
+    console.log(`Admin accounts already exist (${adminCount} found). Preserving all administrator credentials and passwords.`);
   }
 
-  console.log('Database initialization completed successfully! Plans are 100% managed by Admin.');
+  console.log('Database initialization check complete. Zero data overwritten.');
 }
 
 if (process.argv[1]?.endsWith('seed.js')) {

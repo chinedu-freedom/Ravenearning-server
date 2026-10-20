@@ -5,42 +5,60 @@ const prisma = new PrismaClient();
 
 async function main() {
   const args = process.argv.slice(2);
-  let email = args[0];
-  let password = args[1];
-  let role = args[2] || 'admin';
+  const email = args[0];
+  const password = args[1];
+  const phone = args[2];
+  const role = args[3] || 'superadmin';
 
   if (!email || !password) {
-    console.log('No credentials provided in command line arguments.');
-    console.log('Usage: node seedAdmin.js <email> <password> [role]');
-    console.log('Using default admin setup instead...\n');
-    email = 'admin@omni.com';
-    password = 'adminpassword123';
+    console.error('Error: Email and password must be explicitly provided.');
+    console.error('Usage: node seedAdmin.js <email> <password> [phone] [role]');
+    process.exit(1);
   }
 
-  console.log(`Creating admin with:`);
+  if (password.length < 6) {
+    console.error('Error: Password must be at least 6 characters long.');
+    process.exit(1);
+  }
+
+  console.log(`Creating/updating admin with:`);
   console.log(`- Email: ${email}`);
   console.log(`- Role: ${role}`);
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  const admin = await prisma.admins.upsert({
-    where: { email },
-    update: {
-      password_hash: passwordHash,
-      role: role
-    },
-    create: {
-      email,
-      password_hash: passwordHash,
-      role: role
-    },
+  const existing = await prisma.admins.findFirst({
+    where: {
+      OR: [
+        { email },
+        phone ? { phone } : undefined
+      ].filter(Boolean)
+    }
   });
 
-  console.log('\nAdmin created/updated successfully!');
-  console.log(`Admin ID: ${admin.id}`);
-  console.log(`Email: ${admin.email}`);
-  console.log(`Password: ${password}`);
-  console.log(`Role: ${admin.role}`);
+  if (existing) {
+    const updated = await prisma.admins.update({
+      where: { id: existing.id },
+      data: {
+        email,
+        password_hash: passwordHash,
+        role,
+        ...(phone ? { phone } : {})
+      }
+    });
+    console.log(`Admin ${updated.email} updated successfully.`);
+  } else {
+    const created = await prisma.admins.create({
+      data: {
+        email,
+        password_hash: passwordHash,
+        role,
+        phone: phone || null,
+        username: email.split('@')[0]
+      }
+    });
+    console.log(`Admin ${created.email} created successfully.`);
+  }
 }
 
 main()
