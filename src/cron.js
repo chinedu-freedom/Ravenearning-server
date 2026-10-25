@@ -124,10 +124,7 @@ export const runProfitPayouts = async () => {
             // Determine the exact paid_date for this missing payout
             const precisePaidDate = new Date(lastPayoutDate.getTime() + ((i + 1) * 24 * 60 * 60 * 1000));
 
-            // Skip payout if the calculated date falls on a Sunday (0 = Sunday)
-            if (precisePaidDate.getDay() === 0) {
-              continue;
-            }
+            // Payouts occur every single day (Monday to Sunday)
 
             // Log the profit generation
             await prisma.investment_profits.create({
