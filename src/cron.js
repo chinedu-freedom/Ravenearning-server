@@ -7,10 +7,7 @@ export const runProfitPayouts = async () => {
   try {
     const now = new Date();
 
-    // Skip daily profit payouts on Sunday (0 = Sunday)
-    if (now.getDay() === 0) {
-      return;
-    }
+    // Payouts run every single day (Monday to Sunday)
 
     const activeInvestments = await prisma.investments.findMany({
       where: {
@@ -267,5 +264,6 @@ export const initCron = () => {
 };
 
 export const initCronJobs = initCron;
+export const processDailyProfits = runProfitPayouts;
 export default initCron;
 
