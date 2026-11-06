@@ -121,12 +121,12 @@ router.get('/me', authenticate, async (req, res) => {
         phone: cleanPhoneNumber(user.phone),
         email: user.email,
         full_name: user.full_name,
-        username: (user.username && (user.username.startsWith('27') || user.username.startsWith('+27'))) ? cleanPhoneNumber(user.username) : user.username,
+        username: (user.username && (user.username.startsWith('251') || user.username.startsWith('+251') || user.username.startsWith('27') || user.username.startsWith('+27'))) ? cleanPhoneNumber(user.username) : user.username,
         profile_image: user.profile_image,
         balance: user.balance,
         withdrawable_balance: user.withdrawable_balance,
         gift_balance: user.gift_balance,
-        country: { country_name: 'South Africa', currency_symbol: 'R', currency_code: 'ZAR' },
+        country: { country_name: 'Ethiopia', currency_symbol: 'Br', currency_code: 'ETB' },
         language: { language_name: 'English', language_code: 'en' },
         referral_code: referralCode,
         has_withdrawal_pin: !!user.withdrawal_pin,
@@ -1490,7 +1490,7 @@ router.post('/deposit', authenticate, async (req, res) => {
     const settings = await prisma.settings.findFirst();
     const minDep = Number(settings?.min_deposit || 100);
     const maxDep = Number(settings?.max_deposit || 10000000);
-    const symbol = settings?.currency_symbol || 'R';
+    const symbol = (settings?.currency_symbol && settings.currency_symbol !== 'R') ? settings.currency_symbol : 'Br';
 
     if (Number(amount) < minDep || Number(amount) > maxDep) {
       return res.status(400).json({ success: false, message: `Amount must be between ${symbol}${minDep} and ${symbol}${maxDep}` });
@@ -1615,7 +1615,7 @@ router.post('/withdraw', authenticate, async (req, res) => {
     const minAmount = Number(settings?.min_withdrawal || 100);
     const maxAmount = Number(settings?.max_withdrawal || 5000000);
     const feeRate = Number(settings?.withdrawal_charge || 15) / 100;
-    const symbol = settings?.currency_symbol || 'R';
+    const symbol = (settings?.currency_symbol && settings.currency_symbol !== 'R') ? settings.currency_symbol : 'Br';
 
     if (Number(amount) < minAmount) {
       return res.status(400).json({ success: false, message: `Minimum withdrawal amount is ${symbol}${minAmount.toLocaleString()}` });
@@ -1935,7 +1935,7 @@ router.post('/daily-checkin/claim', authenticate, async (req, res) => {
     });
 
     const settings = await prisma.settings.findFirst();
-    const symbol = settings?.currency_symbol || 'R';
+    const symbol = (settings?.currency_symbol && settings.currency_symbol !== 'R') ? settings.currency_symbol : 'Br';
 
     res.json({
       success: true,

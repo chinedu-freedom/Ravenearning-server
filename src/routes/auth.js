@@ -150,7 +150,7 @@ router.post('/register', async (req, res) => {
 
 // Get Countries
 router.get('/countries', async (req, res) => {
-  res.json({ success: true, data: [{ id: 'za', country_code: 'ZA', country_name: 'South Africa', currency_symbol: 'R', currency_code: 'ZAR' }] });
+  res.json({ success: true, data: [{ id: 'et', country_code: 'ET', country_name: 'Ethiopia', currency_symbol: 'Br', currency_code: 'ETB' }] });
 });
 
 // Get Languages

@@ -9,11 +9,22 @@ router.get(['/', '/public'], async (req, res) => {
   try {
     const settings = await prisma.settings.findFirst();
     
-    if (settings && !settings.platform_logo) {
-      settings.platform_logo = "/logo.jpeg";
+    if (settings) {
+      if (!settings.platform_logo) {
+        settings.platform_logo = "/logo.jpeg";
+      }
+      if (settings.currency_symbol === 'R' || settings.currency_name === 'ZAR' || !settings.currency_symbol || !settings.currency_name) {
+        settings.currency_symbol = 'Br';
+        settings.currency_name = 'ETB';
+        // Persist update to database
+        await prisma.settings.update({
+          where: { id: settings.id },
+          data: { currency_symbol: 'Br', currency_name: 'ETB' }
+        }).catch(err => console.error('Failed to auto-update currency settings in DB:', err));
+      }
     }
     
-    res.json({ success: true, settings: settings || { site_name: 'suncerestcapital', platform_logo: '/logo.jpeg', currency_symbol: 'R' } });
+    res.json({ success: true, settings: settings || { site_name: 'suncerestcapital', platform_logo: '/logo.jpeg', currency_symbol: 'Br', currency_name: 'ETB' } });
   } catch (error) {
     console.error('Settings fetch error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch settings' });

@@ -103,9 +103,9 @@ router.get('/platform', async (req, res) => {
         data: {
           site_name: "suncerestcapital",
           site_title: "suncerestcapital",
-          currency_name: "ZAR",
-          currency_symbol: "R",
-          timezone: "UTC",
+          currency_name: "ETB",
+          currency_symbol: "Br",
+          timezone: "Africa/Addis_Ababa",
           registration_bonus: 0,
           welcome_bonus_destination: "deposit",
           min_deposit: 1000,
@@ -116,6 +116,13 @@ router.get('/platform', async (req, res) => {
           live_market_enabled: true
         }
       });
+    } else if (settings.currency_symbol === 'R' || settings.currency_name === 'ZAR') {
+      settings.currency_symbol = 'Br';
+      settings.currency_name = 'ETB';
+      await prisma.settings.update({
+        where: { id: settings.id },
+        data: { currency_symbol: 'Br', currency_name: 'ETB' }
+      }).catch(() => {});
     }
     const result = settings ? settings.toJSON ? settings.toJSON() : JSON.parse(JSON.stringify(settings)) : {};
     res.json({ success: true, settings, ...result });
