@@ -10,7 +10,8 @@
     "build": "prisma generate && prisma db push --accept-data-loss",
     "postinstall": "prisma generate",
     "db:push": "prisma db push --accept-data-loss",
-    "seed": "node src/seed.js"
+    "seed": "node src/seed.js",
+    "db:clear": "node src/clear_db.js"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",

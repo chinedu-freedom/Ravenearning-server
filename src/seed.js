@@ -9,9 +9,9 @@ const prisma = new PrismaClient();
 const defaultSettings = {
   site_name: 'suncerestcapital',
   site_title: 'suncerestcapital',
-  currency_name: 'ZAR',
-  currency_symbol: 'R',
-  timezone: 'Africa/Johannesburg',
+  currency_name: 'ETB',
+  currency_symbol: 'Br',
+  timezone: 'Africa/Addis_Ababa',
   platform_logo: '/logo.png',
   registration_bonus: 100,
   welcome_bonus_destination: 'withdrawable_balance',
