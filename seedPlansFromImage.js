@@ -6,15 +6,13 @@ const prisma = new PrismaClient();
 
 const officialPlans = [
   {
-    vip: "VIP1",
-    name: "Suncerest Capital 1",
-    description: "Suncerest Capital 1 Solar Energy Infrastructure",
+    name: "Suncerest 1",
+    description: "Suncerest 1 Solar Energy Infrastructure",
     category: "VIP Series",
-    duration: 360,
-    min_investment: 200,
-    max_investment: 200,
-    daily_income: 40,
-    total_revenue: 14000,
+    duration: 30,
+    min_investment: 600,
+    max_investment: 600,
+    daily_income: 90,
     image: "/images/plans/vip1.jpg",
     status: true,
     is_sold_out: false,
@@ -22,15 +20,13 @@ const officialPlans = [
     is_fixed_deposit: false
   },
   {
-    vip: "VIP2",
-    name: "Suncerest Capital 2",
-    description: "Suncerest Capital 2 Solar Energy Infrastructure",
+    name: "Suncerest 2",
+    description: "Suncerest 2 Solar Energy Infrastructure",
     category: "VIP Series",
-    duration: 360,
-    min_investment: 500,
-    max_investment: 500,
-    daily_income: 90,
-    total_revenue: 32400,
+    duration: 30,
+    min_investment: 1000,
+    max_investment: 1000,
+    daily_income: 160,
     image: "/images/plans/vip2.jpg",
     status: true,
     is_sold_out: false,
@@ -38,15 +34,13 @@ const officialPlans = [
     is_fixed_deposit: false
   },
   {
-    vip: "VIP3",
-    name: "Suncerest Capital 3",
-    description: "Suncerest Capital 3 Solar Energy Infrastructure",
+    name: "Suncerest 3",
+    description: "Suncerest 3 Solar Energy Infrastructure",
     category: "VIP Series",
-    duration: 360,
-    min_investment: 1000,
-    max_investment: 1000,
-    daily_income: 310,
-    total_revenue: 111600,
+    duration: 60,
+    min_investment: 3000,
+    max_investment: 3000,
+    daily_income: 500,
     image: "/images/plans/vip3.jpg",
     status: true,
     is_sold_out: false,
@@ -54,15 +48,13 @@ const officialPlans = [
     is_fixed_deposit: false
   },
   {
-    vip: "VIP4",
-    name: "Suncerest Capital 4",
-    description: "Suncerest Capital 4 Solar Energy Infrastructure",
+    name: "Suncerest 4",
+    description: "Suncerest 4 Solar Energy Infrastructure",
     category: "VIP Series",
-    duration: 360,
-    min_investment: 2000,
-    max_investment: 2000,
-    daily_income: 640,
-    total_revenue: 230400,
+    duration: 60,
+    min_investment: 6000,
+    max_investment: 6000,
+    daily_income: 1050,
     image: "/images/plans/vip4.jpg",
     status: true,
     is_sold_out: false,
@@ -70,15 +62,13 @@ const officialPlans = [
     is_fixed_deposit: false
   },
   {
-    vip: "VIP5",
-    name: "Suncerest Capital 5",
-    description: "Suncerest Capital 5 Solar Energy Infrastructure",
+    name: "Suncerest 5",
+    description: "Suncerest 5 Solar Energy Infrastructure",
     category: "VIP Series",
-    duration: 360,
-    min_investment: 4000,
-    max_investment: 4000,
-    daily_income: 1320,
-    total_revenue: 475200,
+    duration: 60,
+    min_investment: 12000,
+    max_investment: 12000,
+    daily_income: 2200,
     image: "/images/plans/vip5.jpg",
     status: true,
     is_sold_out: false,
@@ -86,15 +76,13 @@ const officialPlans = [
     is_fixed_deposit: false
   },
   {
-    vip: "VIP6",
-    name: "Suncerest Capital 6",
-    description: "Suncerest Capital 6 Solar Energy Infrastructure",
+    name: "Suncerest 6",
+    description: "Suncerest 6 Solar Energy Infrastructure",
     category: "VIP Series",
-    duration: 360,
-    min_investment: 10000,
-    max_investment: 10000,
-    daily_income: 3400,
-    total_revenue: 1224000,
+    duration: 60,
+    min_investment: 25000,
+    max_investment: 25000,
+    daily_income: 5000,
     image: "/images/plans/vip6.jpg",
     status: true,
     is_sold_out: false,
@@ -102,15 +90,13 @@ const officialPlans = [
     is_fixed_deposit: false
   },
   {
-    vip: "VIP7",
-    name: "Suncerest Capital 7",
-    description: "Suncerest Capital 7 Solar Energy Infrastructure",
+    name: "Suncerest 7",
+    description: "Suncerest 7 Solar Energy Infrastructure",
     category: "VIP Series",
-    duration: 360,
-    min_investment: 20000,
-    max_investment: 20000,
-    daily_income: 7000,
-    total_revenue: 2520000,
+    duration: 90,
+    min_investment: 50000,
+    max_investment: 50000,
+    daily_income: 10500,
     image: "/images/plans/vip7.jpg",
     status: true,
     is_sold_out: false,
@@ -118,16 +104,28 @@ const officialPlans = [
     is_fixed_deposit: false
   },
   {
-    vip: "VIP8",
-    name: "Suncerest Capital 8",
-    description: "Suncerest Capital 8 Solar Energy Infrastructure",
+    name: "Suncerest 8",
+    description: "Suncerest 8 Solar Energy Infrastructure",
     category: "VIP Series",
-    duration: 360,
-    min_investment: 30000,
-    max_investment: 30000,
-    daily_income: 10800,
-    total_revenue: 3888000,
+    duration: 90,
+    min_investment: 100000,
+    max_investment: 100000,
+    daily_income: 23000,
     image: "/images/plans/vip8.jpg",
+    status: true,
+    is_sold_out: false,
+    capital_return: false,
+    is_fixed_deposit: false
+  },
+  {
+    name: "Suncerest 9",
+    description: "Suncerest 9 Solar Energy Infrastructure",
+    category: "VIP Series",
+    duration: 90,
+    min_investment: 200000,
+    max_investment: 200000,
+    daily_income: 50000,
+    image: "/images/plans/vip9.jpg",
     status: true,
     is_sold_out: false,
     capital_return: false,
@@ -136,58 +134,79 @@ const officialPlans = [
 ];
 
 async function seedPlans() {
-  console.log("Fetching all current plans from database...");
-  const allCurrentPlans = await prisma.plans.findMany();
-  
-  // Separate VIP series from activity/other series
-  const existingVipPlans = allCurrentPlans
-    .filter(p => !p.category || p.category === 'VIP Series' || p.category.includes('VIP'))
-    .sort((a, b) => Number(a.min_investment) - Number(b.min_investment));
+  console.log("Seeding Suncerest investment plans from official flyer...");
 
-  console.log(`Found ${existingVipPlans.length} existing VIP plans and ${allCurrentPlans.length - existingVipPlans.length} other plans.`);
+  // 1. Wipe existing plans to ensure clean order matching official flyer
+  await prisma.plans.deleteMany();
+  console.log("Cleared existing plans.");
 
-  for (let i = 0; i < officialPlans.length; i++) {
-    const target = officialPlans[i];
-    const existing = existingVipPlans[i];
-
-    const { total_revenue, vip, ...cleanData } = target;
-
-    if (existing) {
-      console.log(`Updating VIP${i + 1}: ${existing.name} -> ${target.name} (Price: R${target.min_investment}, Daily: R${target.daily_income})`);
-      await prisma.plans.update({
-        where: { id: existing.id },
-        data: cleanData
-      });
-    } else {
-      console.log(`Creating new VIP${i + 1}: ${target.name}`);
-      await prisma.plans.create({
-        data: cleanData
-      });
-    }
+  // 2. Create the 9 official plans
+  for (const plan of officialPlans) {
+    const created = await prisma.plans.create({ data: plan });
+    const totalEarnings = Number(plan.daily_income) * plan.duration;
+    console.log(`Created: ${created.name} | Price: ${plan.min_investment} ETB | Daily: ${plan.daily_income} ETB | Total: ${totalEarnings} ETB | Days: ${plan.duration}`);
   }
 
-  // Deactivate non-VIP or legacy extra plans
-  for (const p of allCurrentPlans) {
-    const isVipPlan = existingVipPlans.slice(0, 8).some(v => v.id === p.id);
-    if (!isVipPlan) {
-      console.log(`Deactivating non-VIP or legacy plan: ${p.name} (ID: ${p.id})`);
-      await prisma.plans.update({
-        where: { id: p.id },
-        data: { status: false }
-      });
-    }
+  // 3. Update settings to match platform flyer details
+  console.log("Updating platform settings with flyer values...");
+  const existingSettings = await prisma.settings.findFirst();
+  const settingsData = {
+    currency_name: 'ETB',
+    currency_symbol: 'Br',
+    timezone: 'Africa/Addis_Ababa',
+    registration_bonus: 200,
+    min_deposit: 600,
+    min_withdrawal: 200,
+    withdrawal_charge: 15,
+    level1_commission: 22,
+    level2_commission: 2,
+    level3_commission: 1
+  };
+
+  if (existingSettings) {
+    await prisma.settings.update({
+      where: { id: existingSettings.id },
+      data: settingsData
+    });
+    console.log("Updated existing platform settings.");
+  } else {
+    await prisma.settings.create({
+      data: {
+        site_name: 'suncerestcapital',
+        site_title: 'suncerestcapital',
+        platform_logo: '/logo.png',
+        welcome_bonus_destination: 'withdrawable_balance',
+        daily_withdrawal_limit: 100000,
+        max_withdrawal: 5000000,
+        max_deposit: 10000000,
+        deposit_charge: 0,
+        deposit_bonus: 0,
+        quickpay_enabled: false,
+        live_market_enabled: true,
+        activity_series_enabled: false,
+        ...settingsData
+      }
+    });
+    console.log("Created fresh platform settings.");
   }
 
-  console.log("\n--- SUNCEREST CAPITAL PLANS IN DATABASE ---");
-  const finalPlans = await prisma.plans.findMany({
-    where: { status: true },
-    orderBy: { min_investment: 'asc' }
-  });
+  // 4. Update daily check-in rewards to ETB 10
+  console.log("Setting daily check-in rewards to ETB 10...");
+  await prisma.daily_checkins.deleteMany().catch(() => {});
+  for (let day = 1; day <= 7; day++) {
+    await prisma.daily_checkins.create({
+      data: {
+        day_number: day,
+        reward_amount: 10,
+        description: `Day ${day} Check-in Reward (ETB 10)`
+      }
+    });
+  }
+  console.log("Daily check-in rewards set to ETB 10 for Days 1-7.");
 
-  finalPlans.forEach((p, idx) => {
-    console.log(`VIP${idx + 1}: ${p.name} | Price: R ${Number(p.min_investment)} | Daily: R ${Number(p.daily_income)} | Total: R ${Number(p.total_revenue)} | Duration: ${p.duration} days`);
-  });
-  console.log("------------------------------------------");
+  console.log("\n==============================================");
+  console.log("ALL 9 SUNCEREST INVESTMENT PLANS SUCCESSFULLY CREATED!");
+  console.log("==============================================");
 }
 
 seedPlans()

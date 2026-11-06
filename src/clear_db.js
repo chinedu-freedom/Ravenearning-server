@@ -13,20 +13,20 @@ const defaultSettings = {
   currency_symbol: 'Br',
   timezone: 'Africa/Addis_Ababa',
   platform_logo: '/logo.png',
-  registration_bonus: 100,
+  registration_bonus: 200,
   welcome_bonus_destination: 'withdrawable_balance',
   daily_withdrawal_limit: 100000,
-  min_withdrawal: 100,
+  min_withdrawal: 200,
   max_withdrawal: 50000,
-  min_deposit: 100,
+  min_deposit: 600,
   max_deposit: 500000,
   withdrawal_charge: 15,
   deposit_charge: 0,
   deposit_bonus: 0,
   quickpay_enabled: false,
-  level1_commission: 30,
-  level2_commission: 10,
-  level3_commission: 5,
+  level1_commission: 22,
+  level2_commission: 2,
+  level3_commission: 1,
   level4_commission: 0,
   live_market_enabled: true,
   activity_series_enabled: false,
@@ -93,7 +93,14 @@ async function clearDatabase() {
           data: {
             currency_name: 'ETB',
             currency_symbol: 'Br',
-            timezone: 'Africa/Addis_Ababa'
+            timezone: 'Africa/Addis_Ababa',
+            registration_bonus: 200,
+            min_deposit: 600,
+            min_withdrawal: 200,
+            withdrawal_charge: 15,
+            level1_commission: 22,
+            level2_commission: 2,
+            level3_commission: 1
           }
         });
       } else {
@@ -132,3 +139,4 @@ async function clearDatabase() {
 }
 
 clearDatabase();
+
