@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt';
 // Email notifications disabled
 import { logActivity } from '../lib/logger.js';
 import { cleanPhoneNumber } from '../lib/phone.js';
+import { createXhPayDepositOrder } from '../lib/xhpay.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -1438,30 +1439,6 @@ router.post('/spin', authenticate, async (req, res) => {
 });
 */
 
-import crypto from 'crypto';
-
-function buildQuickPaySign(params, md5Key) {
-  const keys = Object.keys(params).sort();
-  const pairs = [];
-  for (const key of keys) {
-    const val = params[key];
-    if (val !== null && val !== undefined && val !== '' && key !== 'sign') {
-      pairs.push(`${key}=${val}`);
-    }
-  }
-  const strToSign = pairs.join('&') + '&key=' + md5Key;
-  return crypto.createHash('md5').update(strToSign, 'utf8').digest('hex').toUpperCase();
-}
-
-function getQuickPayFormattedTime(date = new Date()) {
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  const hh = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  const ss = String(date.getSeconds()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
-}
 
 router.post('/deposit', authenticate, async (req, res) => {
   try {
@@ -1481,9 +1458,9 @@ router.post('/deposit', authenticate, async (req, res) => {
         cryptoLabel = `${cryptoOption.symbol} (${cryptoOption.network})`;
       }
     } else if (paymentMethod) {
-      cryptoLabel = paymentMethod === 'Online Deposit' ? 'South Africa Bank' : paymentMethod;
+      cryptoLabel = paymentMethod === 'Online Deposit' || paymentMethod === 'Ethiopia Bank' ? 'Ethiopia Bank Transfer (XHPAY)' : paymentMethod;
     } else {
-      cryptoLabel = 'South Africa Bank';
+      cryptoLabel = 'Ethiopia Bank Transfer (XHPAY)';
     }
 
     // Fetch global settings for deposit limits
@@ -1525,65 +1502,54 @@ router.post('/deposit', authenticate, async (req, res) => {
       });
     }
 
-    // Check if Quick Pay automatic gateway is enabled
-    const merchantId = process.env.QUICKPAY_MERCHANT || settings?.quickpay_merchant;
-    const secretKey = process.env.QUICKPAY_KEY || settings?.quickpay_key;
-    const gatewayUrl = process.env.QUICKPAY_URL || settings?.quickpay_url || 'https://safricaapi.quickn.vip';
+    // Direct XHPAY integration using environment variables
+    const xhpayMerNo = process.env.XHPAY_MER_NO || '1190865206';
+    const xhpayHmac = process.env.XHPAY_HMAC_KEY;
 
-    if (settings?.quickpay_enabled && merchantId && secretKey) {
+    if (xhpayHmac && xhpayMerNo) {
       try {
         const payOrderId = `DEP-${deposit.id.slice(0, 8)}-${Date.now()}`;
-        const payAmountStr = Number(amount).toFixed(2);
         const host = req.get('host');
         const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
         const serverBaseUrl = process.env.BACKEND_URL || settings?.backend_url || `${protocol}://${host}`;
-        const notifyUrl = `${serverBaseUrl}/api/quickpay-webhook`;
+        const frontendUrl = process.env.FRONTEND_URL || `${protocol}://${host.replace(':3001', ':3000')}`;
+        const callbackUrl = `${serverBaseUrl}/api/xhpay-webhook`;
+        const returnUrl = `${frontendUrl}/dashboard/account/recharge`;
 
-        const qPayload = {
-          payMemberId: merchantId,
-          payOrderId: payOrderId,
-          payApplyDate: getQuickPayFormattedTime(),
-          payChannelCode: settings.quickpay_channel || '8001',
-          payNotifyUrl: notifyUrl,
-          payAmount: payAmountStr
-        };
-
-        qPayload.sign = buildQuickPaySign(qPayload, secretKey);
-
-        const qRes = await fetch(`${gatewayUrl}/api/pay/createPay`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(qPayload)
+        const orderData = await createXhPayDepositOrder({
+          amount: Number(amount),
+          merOrder: payOrderId,
+          callbackUrl,
+          returnUrl,
+          currency: 'ETB',
+          busicode: 'BANK_TRANSFER'
         });
 
-        const qJson = await qRes.json();
-
-        if ((qJson.code === 200 || qJson.code === 0) && qJson.data?.payUrl) {
-          // Update track_id on deposit
+        if (orderData?.payment_url) {
           await prisma.deposits.update({
             where: { id: deposit.id },
-            data: { track_id: payOrderId }
+            data: { track_id: orderData.platformOrder || payOrderId }
           });
 
           return res.json({
             success: true,
-            message: 'Quick Pay invoice generated. Redirecting to payment checkout...',
-            payUrl: qJson.data.payUrl,
-            trackId: payOrderId,
+            message: 'XHPAY checkout generated. Redirecting to payment checkout...',
+            payUrl: orderData.payment_url,
+            trackId: orderData.platformOrder || payOrderId,
             deposit,
             payableAmount: totalAmount
           });
         } else {
           return res.status(400).json({
             success: false,
-            message: `Quick Pay Gateway Error: ${qJson.msg || 'Failed to generate online payment checkout'}`
+            message: 'Failed to retrieve payment URL from XHPAY'
           });
         }
-      } catch (qpErr) {
-        console.error('QUICKPAY_GENERATE_ERROR:', qpErr);
+      } catch (xhErr) {
+        console.error('XHPAY_GENERATE_ERROR:', xhErr);
         return res.status(500).json({
           success: false,
-          message: `Quick Pay Connection Error: ${qpErr.message}`
+          message: `XHPAY Gateway Error: ${xhErr.message}`
         });
       }
     }

@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 // Email notifications disabled
 import { logActivity } from '../../lib/logger.js';
-import { buildQuickPaySign, buildQuickPayDrawSign, getQuickPayFormattedTime } from '../../lib/quickpay.js';
 import { cleanPhoneNumber } from '../../lib/phone.js';
+import { createXhPayPayoutOrder, mapEthiopianBankToCode } from '../../lib/xhpay.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -131,15 +131,52 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
 
       if (currentWithdrawable < withdrawAmount) {
         return res.status(400).json({
-          error: `Cannot approve withdrawal: user has insufficient withdrawable balance (Current: R${currentWithdrawable.toFixed(2)}, Required: R${withdrawAmount.toFixed(2)})`
+          error: `Cannot approve withdrawal: user has insufficient withdrawable balance (Current: Br${currentWithdrawable.toFixed(2)}, Required: Br${withdrawAmount.toFixed(2)})`
         });
       }
       const newBalance = currentWithdrawable - withdrawAmount;
 
+      let xhpayPlatformOrder = null;
+      const isXhPayConfigured = Boolean(process.env.XHPAY_RSA_PRIVATE_KEY && process.env.XHPAY_MER_NO);
+      const isBankWithdrawal = !withdrawal.withdrawal_method?.includes('USDT');
+
+      if (isXhPayConfigured && isBankWithdrawal) {
+        try {
+          const host = req.get('host');
+          const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+          const serverBaseUrl = process.env.BACKEND_URL || `${protocol}://${host}`;
+          const notifyUrl = `${serverBaseUrl}/api/xhpay-payout-webhook`;
+          const merOrderId = `WDL-${withdrawal.id.slice(0, 8)}-${Date.now()}`;
+
+          const payoutRes = await createXhPayPayoutOrder({
+            amount: Number(withdrawal.net_amount || withdrawal.amount),
+            merOrder: merOrderId,
+            bankName: user?.bank_name || withdrawal.withdrawal_method,
+            accName: user?.bank_account_name || user?.full_name,
+            accNo: user?.bank_account_number,
+            notifyUrl,
+            currency: 'ETB'
+          });
+
+          xhpayPlatformOrder = payoutRes?.platformOrder || merOrderId;
+          console.log('[XHPAY] Payout dispatched successfully:', payoutRes);
+        } catch (payoutErr) {
+          console.error('[XHPAY] Payout dispatch error:', payoutErr);
+          return res.status(500).json({
+            error: `Failed to dispatch payout to XHPAY: ${payoutErr.message}`
+          });
+        }
+      }
+
       await prisma.$transaction([
         prisma.withdrawals.update({
           where: { id: withdrawal.id },
-          data: { status: 'APPROVED', processed_by: req.user?.id || null, processed_at: new Date() }
+          data: {
+            status: 'APPROVED',
+            processed_by: req.user?.id || null,
+            processed_at: new Date(),
+            wallet_address: xhpayPlatformOrder || withdrawal.wallet_address
+          }
         }),
         prisma.users.update({
           where: { id: withdrawal.user_id },
@@ -153,7 +190,7 @@ const handleWithdrawalStatusUpdate = async (req, res) => {
             balance_before: currentWithdrawable,
             balance_after: newBalance,
             reference_id: withdrawal.id,
-            description: `Withdrawal approved by Admin (${withdrawal.withdrawal_method})`
+            description: `Withdrawal approved (${withdrawal.withdrawal_method})${xhpayPlatformOrder ? ' [XHPAY: ' + xhpayPlatformOrder + ']' : ''}`
           }
         })
       ]);
